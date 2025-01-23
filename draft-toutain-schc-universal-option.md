@@ -458,3 +458,5 @@ module ietf-schc-opt {
 {:unnumbered}
 
 The authors sincerely thank 
+
+This work was supported by the Sweden's Innovation Agency VINNOVA within the EUREKA CELTIC-NEXT project CYPRESS.
