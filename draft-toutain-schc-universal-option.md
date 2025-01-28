@@ -18,27 +18,21 @@ submissiontype: IETF
 coding: utf-8
 
 author:
-      -
-        ins: A. Minaburo
-        name: Ana Minaburo
+      - name: Ana Minaburo
         org: Consultant
         street: Rue de Rennes
         city: Cesson-Sevigne
         code: 35510
         country: France
         email: anaminaburo@gmail.com
-      -
-        ins: M. Tiloca
-        name: Marco Tiloca
+      - name: Marco Tiloca
         org: RISE AB
         street: Isafjordsgatan 22
         city: Kista
         code: SE-16440
         country: Sweden
         email: marco.tiloca@ri.se
-      -
-        ins: L. Toutain
-        name: Laurent Toutain
+      - name: Laurent Toutain
         org: IMT Atlantique
         street: CS 17607, 2 rue de la Chataigneraie
         city: Cesson-Sevigne Cedex
