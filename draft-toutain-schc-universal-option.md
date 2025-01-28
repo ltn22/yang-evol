@@ -243,11 +243,7 @@ This leads also to a constraint that has not been included for the Data Model. T
 
 This appendix defines the work in progress YANG Data Model to extend the Data Model defined in {{RFC9363}}.
 
-~~~~~~~~~~~
-
-<CODE BEGINS> file "ietf-schc-opt@2024-12-19.yang"
-
-
+~~~~~~~~~~~ yang
 module ietf-schc-opt {
   yang-version 1.1;
   namespace "urn:ietf:params:xml:ns:yang:ietf-schc-opt";
@@ -448,9 +444,10 @@ module ietf-schc-opt {
 
   }
 }
+~~~~~~~~~~~
+{: sourcecode-name="ietf-schc-opt@2024-12-19.yang" sourcecode-markers="true"}
 
-<CODE ENDS>
-~~~
+
 
 
 # Acknowledgments # {#acknowledgments}
