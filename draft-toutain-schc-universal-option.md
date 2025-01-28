@@ -5,6 +5,10 @@ title: Options representation in SCHC YANG Data Models
 abbrev: SCHC for CoAP
 docname: draft-toutain-schc-universal-option
 
+v3xml2rfc:
+  silence:
+  - Found SVG with width or height specified
+
 area: Internet
 wg: SCHC Working Group
 kw: Internet-Draft
