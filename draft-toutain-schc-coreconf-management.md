@@ -259,27 +259,7 @@ This process imposes to send the full rule in the value part, so an optimization
 
 ## RPC
 
-The following YANG DM introduces an RPC to duplicate a rule.
-
-~~~
-  rpc duplicate-rule {
-        input {
-          container from {
-            uses ietf-schc:rule-id-type;
-          }
-          container to {
-            uses ietf-schc:rule-id-type;
-          }
-        }
-        output {
-          leaf status {
-            type string;
-          }
-        }
-      }
-~~~~
-
-or represented as a tree:
+Represented as a tree:
 
 ~~~
   rpcs:
@@ -300,11 +280,21 @@ After duplication, the new rule stays in a candidate state until the new values 
 
 # Protocol Stack
 
+The management inside the instance has its own IPv6 stack totally independant of the rest of the system. The goal is to implement IPv6/UDP/CoAP to allow the implementation of the CORECONF interface. No other kind of traffic is allowed.
+
+The end-point acting as a Device has the IPv6 address FE80::1/64 and the other end FE80::2/64. 
+
+Both implements CoAP client and server capabilities. The server uses port 5684 and the client 4865. 
+
+
 # OSCORE
+
+## Compression Rules
 
 # DTLS
 
-# Compression Rules
+## Compression Rules
+
 
 
 
@@ -332,21 +322,7 @@ After duplication, the new rule stays in a candidate state until the new values 
         }
       }
 
-or represented as a tree:
 
-  rpcs:
-    +---x duplicate-rule
-       +---w input
-       |  +---w from
-       |  |  +---w rule-id-value?    uint32
-       |  |  +---w rule-id-length?   uint8
-       |  +---w to
-       |     +---w rule-id-value?    uint32
-       |     +---w rule-id-length?   uint8
-       +--ro output
-          +--ro status?   string
-
-After duplication, the new rule stays in a candidate state until the new values are set. 
 
 
 # Acknowledgments # {#acknowledgments}
