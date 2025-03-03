@@ -54,21 +54,26 @@ This document describe how CORECONF management can be applied to SCHC Context.
 
 # Introduction # {#intro}
 
-{{RFC9363}} defines the YANG Data Model for a SCHC context (a.k.a Set of Rules). {{I-D.ietf-lpwan-architecture}} proposes the architecture for rule management. These rules must be clearly identified as Management Rules which gives access to the modification of the context.
+{{RFC9363}} defines the YANG Data Model for a SCHC context (a.k.a Set of Rules). {{I-D.ietf-lpwan-architecture}} proposes the architecture for rule management. Some rules must be clearly dedicated to the modification of the context.
 
 {{RFC9254}} defines a way to serialize data issued from a YANG DM into a CBOR representation and {{I-D.ietf-core-comi}} defines the CoAP interface.
 
-This document describes how to managed rules inside an SCHC instance using CORECONF and proposes some compression rules for the protocol headers.
+This document describes in which condition management can be done, how to managed rules inside an SCHC instance using CORECONF and proposes some compression rules for the protocol headers.
 
 # Applicability statement
 
+## Architecture
+
 SCHC instance mamangement allows the two end-points to modify the common SoR, by:
-* modifyng rules values (such as TV, MO or CDA) in existing rules, 
-* adding or 
-* removing rules. 
 
-The rule management uses the CORECONF interface based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}. Only M rules can modify the SoR. Traffic MUST be protected to avoid a third party to interfere with the management. Section XXXX defines how M rule are defined and protected.
+* modifyng rules values (such as TV, MO or CDA) in existing rules
+* adding a new rule or 
+* removing an existing rules. 
 
+The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}.  M Rules can be either Compression rules or No compression rules. Only M rules can modify the SoR.
+
+
+SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to mamagenement inside an QUIC connection) or directly using OSCORE of DTLS.
 
 ~~~~
 +-----------------+                 +-----------------+
@@ -85,6 +90,10 @@ The rule management uses the CORECONF interface based on CoAP. The management tr
 +.................. Discriminator ....................+
 ~~~~
 {: #Fig-SCHCManagement title='Inband Management'}
+
+## CoAP Profile
+
+Management requests MUST be protected against packet losts. It is RECOMMENDED to use CONfirmable requests and no Token. If the management request is too large regarding the MTU, SCHC Fragmentation SHOULD be used instead of the Block option.
 
 ## Rule modification
 
@@ -141,6 +150,8 @@ message has been correctly received by B. So X becomes valid in A.
 After the rule deletion, a Guard period is established. During that period, a rule with the same ID cannot be created, and SCHC PDU corrying the Rule ID are dropped.
 
 # Management messages.
+
+## Set of Rules Editing
 
 CORECONF proposes an interface to manage data structured with a YANG Data Model. RFC 9363 defines a YANG Data Model for SCHC Rules. 
 SCHC Instance Management MUST use a FETCH to read a rule, iPATCH to modify or create a rule and DELETE to suppress it. 
@@ -202,8 +213,6 @@ module: ietf-schc
                     +--rw comp-decomp-action-value* [index]
                        +--rw index    uint16
                        +--rw value?   binary
-
-
 ~~~
 {: #Fig-tree title='Modifying a rule'}
 
@@ -213,15 +222,18 @@ Therefore to access a specific element in a hierarchy, the SID of this element h
 
 For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, the following command also the specify a TV and change the MO and CDA:
 
+~~~
 iPATH /c 
 {
   ["target-value", 7, 8, field, 1, "di-bidirectional"] : {1: 0, 2: value},
   ["matching-operator", 7, 8, field, 1, "bi-directional"] : mo,
   ["comp-decomp-action", 7, 8, field, 1, "bi-directional"] : cda
 }
+~~~
 
 This can also be specified in a single entry, by setting the sub-tree:
 
+~~~
 iPATH /c 
 {
   ["target-value", 7, 8, field, 1, "di-bidirectional"] : { 
@@ -229,20 +241,62 @@ iPATH /c
        delta_MO : mo,
        delta_CDA: cda}
 }
+~~~
+
 
 To specify a new rule or replace and existing one, the principle is the same:
 
+~~~
 iPATH /c 
 {
   ["rule", 7, 8] : { 
        ...
     }
 }
+~~~
 
 This process imposes to send the full rule in the value part, so an optimization can be done by deriving a exisiting rule and modify some parameters. 
 
+## RPC
+
 The following YANG DM introduces an RPC to duplicate a rule.
 
+~~~
+  rpc duplicate-rule {
+        input {
+          container from {
+            uses ietf-schc:rule-id-type;
+          }
+          container to {
+            uses ietf-schc:rule-id-type;
+          }
+        }
+        output {
+          leaf status {
+            type string;
+          }
+        }
+      }
+~~~~
+
+or represented as a tree:
+
+~~~
+  rpcs:
+    +---x duplicate-rule
+       +---w input
+       |  +---w from
+       |  |  +---w rule-id-value?    uint32
+       |  |  +---w rule-id-length?   uint8
+       |  +---w to
+       |     +---w rule-id-value?    uint32
+       |     +---w rule-id-length?   uint8
+       +--ro output
+          +--ro status?   string
+~~~~
+
+
+After duplication, the new rule stays in a candidate state until the new values are set. 
 
 # Protocol Stack
 
