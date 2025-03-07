@@ -39,7 +39,7 @@ normative:
   RFC9254:
   I-D.ietf-core-comi:
   I-D.ietf-lpwan-architecture:
-
+  I-D.toutain-schc-universal-option:
 informative:
 
 entity:
@@ -52,7 +52,7 @@ This document describe how CORECONF management can be applied to SCHC Context.
 
 --- middle
 
-# Introduction # {#intro}
+# Introduction{#intro}
 
 {{RFC9363}} defines the YANG Data Model for a SCHC context (a.k.a Set of Rules). {{I-D.ietf-lpwan-architecture}} proposes the architecture for rule management. Some rules must be clearly dedicated to the modification of the context.
 
@@ -75,7 +75,7 @@ The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on 
 
 SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to mamagenement inside an QUIC connection) or directly using OSCORE of DTLS.
 
-~~~~
+~~~~ aasvg
 +-----------------+                 +-----------------+
 |       ^         |                 |       ^         |
 |  C/D  !  M ___  |                 |       !  M ___  |
@@ -101,7 +101,7 @@ SCHC imposes both ends to share exactily the same SoR, so a new or modified rule
 A canditate rule cannot be used, either in C/D or F/R. A SCHC PDU MUST not be generated with a candidate rule ID and received PDU containing 
 a candidate rule must be dropped.  
 
-~~~
+~~~ aasvg
               A                         X  B
  X valid      |     modify Rule x    ------| X valid
  X candidate  |=====================/=====>| X candidate
@@ -132,7 +132,7 @@ The Acknowledgement does not reach back A, so the rule stays in the candidate st
 message has been correctly received by B. So X becomes valid in A. 
 
 
-~~~
+~~~ aasvg
               A                            B
  X created    |       
  X candidate  |===========================>| X valid
@@ -257,6 +257,44 @@ iPATH /c
 
 This process imposes to send the full rule in the value part, so an optimization can be done by deriving a exisiting rule and modify some parameters. 
 
+{{I-D.toutain-schc-universal-option}} augments the data model for universal options. This add to compression rules a new entry format where a field is indexed with:
+
+* a space-id, a YANG identifier refering to the protocol containing options (CoAP, QUIC, TCP,...)
+* the option used in the protocol
+* the position 
+
+
+~~~ 
+  +--rw schc-opt:entry-option-space* \
+      [space-id option-value field-position direction-indicator]
+     +--rw schc-opt:space-id                    space-type
+     +--rw schc-opt:option-value                uint32
+     +--rw schc-opt:field-length                union
+     +--rw schc-opt:field-position              uint8
+     +--rw schc-opt:direction-indicator         schc:di-type
+     +--rw schc-opt:target-value* [index]
+     |  +--rw schc-opt:index    uint16
+     |  +--rw schc-opt:value?   binary
+     +--rw schc-opt:matching-operator           schc:mo-type
+     +--rw schc-opt:matching-operator-value* [index]
+     |  +--rw schc-opt:index    uint16
+     |  +--rw schc-opt:value?   binary
+     +--rw schc-opt:comp-decomp-action          schc:cda-type
+     +--rw schc-opt:comp-decomp-action-value* [index]
+        +--rw schc-opt:index    uint16
+        +--rw schc-opt:value?   binary
+~~~
+
+In the CORECONF representation, even if the name are similar in the structure, the SID values are different. The key contains for an entry contains 4 elements.
+
+~~~~
+REQ: FETCH </c>
+        (Content-Format: application/yang-identifiers+cbor-seq)
+   ["schc-opt:matching-operator", 8, 3, "schc-opt:space-id-coap", 11, 1, "di-up"]           
+     
+
+~~~~~
+
 ## RPC
 
 Represented as a tree:
@@ -286,6 +324,7 @@ The end-point acting as a Device has the IPv6 address FE80::1/64 and the other e
 
 Both implements CoAP client and server capabilities. The server uses port 5684 and the client 4865. 
 
+## Compression Rules
 
 # OSCORE
 

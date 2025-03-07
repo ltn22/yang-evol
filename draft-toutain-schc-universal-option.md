@@ -447,6 +447,54 @@ module ietf-schc-opt {
 ~~~~~~~~~~~
 {: sourcecode-name="ietf-schc-opt@2024-12-19.yang" sourcecode-markers="true"}
 
+# Examples
+
+The following message is a CoAP message with several options, options are defined in {{RFC9363}}, except SCP82-Param (2055):
+
+~~~~
+0000  40 01 00 01 BD 01 61 63 63 65 6C 65 72 6F 6D 65  @.....accelerome
+0010  74 65 72 73 07 6D 61 78 69 6D 75 6D 4A 64 61 74  ters.maximumJdat
+0020  65 3D 74 6F 64 61 79 0A 75 6E 69 74 3D 6D 2F 73  e=today.unit=m/s
+0030  5E 32 21 3C D1 E4 02 E3 05 F8 54 4C 56           ^2!<......TLV
+
+CON  0x0001 GET   
+> Uri-path : b'accelerometers'
+> Uri-path : b'maximum'
+> Uri-query : b'date=today'
+> Uri-query : b'unit=m/s^2'
+> Accept : 60
+> No-Response : 2
+> SCP82-Param : b'TLV'
+~~~~
+{: #fig-coap-example title="Example of a CoAP packet with options." artwork-align="center"}
+
+In RFC8724 informal notation, a rule matching this packet could be:
+
+~~~~~
++===================================================================+
+|RuleID 1                                                           |
++==========+===+==+==+======+===============+===============+=======+
+|  Field   | FL|FP|DI|  TV  |       MO      |      CDA      |  Sent |
+|          |   |  |  |      |               |               | [bits]|
++==========+===+==+==+======+===============+===============+=======+
+|CoAP      |2  |1 |Bi|01    | equal         | not-sent      |       |
+|version   |   |  |  |      |               |               |       |
++----------+---+--+--+------+---------------+---------------+=======+
+|CoAP Type |2  |1 |Dw|CON   | equal         | not-sent      |       |
++----------+---+--+--+------+---------------+---------------+=======+
+|CoAP TKL  |4  |1 |Bi|0     | equal         | not-sent      |       |
++----------+---+--+--+------+---------------+---------------+=======+
+|CoAP Code |8  |1 |Bi|[0.00,| match-mapping | matching-sent |CC CCC |
+|          |   |  |  |...   |               |               |       |
+|          |   |  |  |5.05] |               |               |       |
++----------+---+--+--+------+---------------+---------------+=======+
+|CoAP MID  |16 |1 |Bi|0000  | MSB(7)        | LSB           |MID    |
++----------+---+--+--+------+---------------+---------------+=======+
+|CoAP Uri- |var|1 |Dw|path  | equal 1       | not-sent      |       |
+|Path      |   |  |  |      |               |               |       |
++----------+---+--+--+------+---------------+---------------+=======+
+
+~~~~~
 
 
 
