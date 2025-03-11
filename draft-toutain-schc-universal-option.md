@@ -49,6 +49,11 @@ informative:
   I-D.lampin-lpwan-schc-considerations:
   I-D.ietf-schc-8824-update:
   I-D.ietf-lpwan-architecture:
+  GPC-SPE-207: 
+    title: "Remote Application Management over CoAP – Amendment M v1.0"
+    author:
+       org: "GlobalPlatform"
+    target: "https://globalplatform.org/specs-library/amendment-m-remote-application-mgmt-over-coap/"
 
 entity:
   SELF: "[RFC-XXXX]"
@@ -468,11 +473,22 @@ CON  0x0001 GET
 ~~~~
 {: #fig-coap-example title="Example of a CoAP packet with options." artwork-align="center"}
 
+In the following examples, the compression rule will send the residues for the Uri-Path, Uri-Query and SCP82-Param, 
+the rest is elided.
+
+The goal of the comparison is to see:
+
+* the size of the serialization of a rule matching the previous packet
+* the size of the CORECONF query payload to access to the Target Value of the Accept option in the rule.
+* the size of the compressed message
+
+## Semantic compression
+
 In RFC8724 informal notation, a rule matching this packet could be:
 
 ~~~~~
 +===================================================================+
-|RuleID 1                                                           |
+|RuleID 1/8                                                         |
 +==========+===+==+==+======+===============+===============+=======+
 |  Field   | FL|FP|DI|  TV  |       MO      |      CDA      |  Sent |
 |          |   |  |  |      |               |               | [bits]|
@@ -488,17 +504,17 @@ In RFC8724 informal notation, a rule matching this packet could be:
 +----------+---+--+--+------+---------------+---------------+=======+
 |CoAP MID  |16 |1 |Bi|0000  | MSB(7)        | LSB           |MID    |
 +----------+---+--+--+------+---------------+---------------+=======+
-|CoAP Uri- |var|1 |Dw|      | ignore        | value-sent    |       |
-|Path      |   |  |  |      |               |               |       |
+|CoAP Uri- |var|1 |Dw|      | ignore        | value-sent    | size+ |
+|Path      |   |  |  |      |               |               | value |
 +----------+---+--+--+------+---------------+---------------+=======+
-|CoAP Uri- |var|2 |Dw|      | ignore        | value-sent    |       |
-|Path      |   |  |  |      |               |               |       |
+|CoAP Uri- |var|2 |Dw|      | ignore        | value-sent    | size+ |
+|Path      |   |  |  |      |               |               | value |
 +----------+---+--+--+------+---------------+---------------+=======+
-|CoAP Uri- |var|1 |Dw|      | ignore        | value-sent    |       |
-|Query     |   |  |  |      |               |               |       |
+|CoAP Uri- |var|1 |Dw|      | ignore        | value-sent    | size+ |
+|Query     |   |  |  |      |               |               | value |
 +----------+---+--+--+------+---------------+---------------+=======+
-|CoAP Uri- |var|2 |Dw|      | ignore        | value-sent    |       |
-|Query     |   |  |  |      |               |               |       |
+|CoAP Uri- |var|2 |Dw|      | ignore        | value-sent    | size+ |
+|Query     |   |  |  |      |               |               | value |
 +----------+---+--+--+------+---------------+---------------+=======+
 |CoAP      |8  |1 |Dw| 60   | equal         | not-sent      |       |
 |Accept    |   |  |  |      |               |               |       |
@@ -506,13 +522,120 @@ In RFC8724 informal notation, a rule matching this packet could be:
 |CoAP  No- |8  |1 |Dw| 2    | equal         | not-sent      |       |
 |Response  |   |  |  |      |               |               |       |
 +----------+---+--+--+------+---------------+---------------+=======+
-|CoAP  SCP |var|1 |Dw|      | ignore        | value-sent    |       |
-|82-Paran  |   |  |  |      |               |               |       |
+|CoAP  SCP |var|1 |Dw|      | ignore        | value-sent    | size+ |
+|82-Param  |   |  |  |      |               |               | value |
 +----------+---+--+--+------+---------------+---------------+=======+
 
 ~~~~~
+{: #fig-rule-test title="Target rule." artwork-align="center"}
+
+### with RFC 9363 
+
+The rule 1/8 cannot be serialized in CBOR with {{RFC9363}} Data Model, since
+there is indentyref defined for CoAP SCP82 Param option. This could be solved 
+by defining a new YANG DM introducing identityref for the options defined for 
+{{GPC-SPE-207}} and the associated SID range. We suppose that {{RFC9363}} SIDs
+starts at 5000 and {{GPC-SPE-207}} at 10000. 
+
+The CBOR message is 365 bytes long as shown {{fig-cbor-serial}}.
+
+~~~~~
+b'a11913e7a10181a4048ca7061913bf070208010519139b091913db011913970d81a20100024101a7
+061913be070208010519139a091913db011913970d81a20100024100a7061913bc070408010519139b
+091913db011913970d81a20100024100a70619139f070808010519139a091913db011913970d81a201
+00024101a8061913a2071008010519139a091913de0a81a20100024107011913950d81a20100024100
+a6061913b907d82d1913d508010519139b091913dc01191398a6061913b907d82d1913d50802051913
+9b091913dc01191398a6061913bb07d82d1913d508010519139b091913dc01191398a6061913bb07d8
+2d1913d508020519139b091913dc01191398a7061913a407d82d1913d508010519139b091913db0119
+13970d81a2010002413ca7061913ae07d82d1913d508010519139b091913db011913970d81a2010002
+4102a60619271107d82d1913d508010519139b091913dc0119139818220818210118231913e0'
+~~~~~
+{: #fig-cbor-serial title="CBOR serialisation." artwork-align="center"}
+
+The diagnostic representation of the CBOR message is the following:
+
+~~~~
+Deltas in entry part:
+- 6: field-id
+- 7: field-length
+- 8: field-position
+- 5: direction-indicator
+- 9: matching-operator
+- 1: comp-decomp-action
+- 10: matching-operator-value
+- 13: target-value
 
 
+{5095: {1: [{4: [
+  {6: 5055, 7: 2, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'01'}]}, 
+  {6: 5054, 7: 2, 8: 1, 5: 5018, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'00'}]}, 
+  {6: 5052, 7: 4, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'00'}]}, 
+  {6: 5023, 7: 8, 8: 1, 5: 5018, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'01'}]}, 
+  {6: 5026, 7: 16, 8: 1, 5: 5018, 9: 5086, 
+                  10: [{1: 0, 2: h'07'}], 1: 5013, 13: [{1: 0, 2: h'00'}]},
+  {6: 5049, 7: 45(5077), 8: 1, 5: 5019, 9: 5084, 1: 5016}, 
+  {6: 5049, 7: 45(5077), 8: 2, 5: 5019, 9: 5084, 1: 5016}, 
+  {6: 5051, 7: 45(5077), 8: 1, 5: 5019, 9: 5084, 1: 5016}, 
+  {6: 5051, 7: 45(5077), 8: 2, 5: 5019, 9: 5084, 1: 5016}, 
+  {6: 5028, 7: 45(5077), 8: 1, 5: 5019, 9: 5083, 1: 5015,
+                                                    13: [{1: 0, 2: h'3C'}]},
+  {6: 5038, 7: 45(5077), 8: 1, 5: 5019, 9: 5083, 1: 5015, 
+                                                    13: [{1: 0, 2: h'02'}]}, 
+  {6: 10001, 7: 45(5077), 8: 1, 5: 5019, 9: 5084, 1: 5016}], 
+34: 8, 33: 1, 35: 5088}
+]}}
+~~~
+{: #fig-cbor-diag title="CBOR diagnostic notation." artwork-align="center"}
+
+CORECONF request to access to the target value of the Accept option is given in {{fig-query}}. The size of the CoAP payload is 14 bytes.
+
+~~~
+REQ: FETCH </c>
+        (Content-Format: application/yang-identifiers+cbor-seq)
+   [5115,     / .../target-value/value 
+    8,        / rule-id-value
+    1,        / rule-id-length
+    5028,     / fid-coap-option-accept
+    1,        / field-position
+    5019,     / direction-indicator
+    0]        / target-value/index
+~~~
+{: #fig-query title="CORECONF query to Accept TV." artwork-align="center"}
+
+The SCHC packet {{fig-residue}} has a size of 389 bits or 49 bytes with the alignment.
+
+~~~
+0800f30b1b1b2b632b937b6b2ba32b939bb6b0bc34b6bab6d3230ba329eba37b230bcd3ab734ba1eb697b9af191aa262b0/389
+~~~
+{: #fig-residue title="SCHC compressed packet." artwork-align="center"}
+
+
+### Universal Options (Laurent)
+
+The change for options described in this document
+
+## Syntatic compression (Quentin)
+
+with options decomposed with delta Type, Length, Value.
+
+## Revised RFC9363 
+
+with Corentin proposal to flatten the rule entries
+
+## Summary
+
+~~~
+  +--------+------------+------------+------------+------------+
+  |        | RFC9363    |  Univ Opt  | Syntatic   |  Revised   |
+  +--------+------------+------------+------------+------------+
+  |CORECONF|    365     |            |            |            |
+  +--------+------------+------------+------------+------------+
+  |Query   |     14     |            |            |            |
+  +--------+------------+------------+------------+------------+
+  |SCHC pkt|     49     |            |            |            |
+  +--------+------------+------------+------------+------------+
+
+~~~
 
 # Acknowledgments # {#acknowledgments}
 {:unnumbered}
