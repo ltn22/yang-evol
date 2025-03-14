@@ -537,7 +537,7 @@ by defining a new YANG DM introducing identityref for the options defined for
 {{GPC-SPE-207}} and the associated SID range. We suppose that {{RFC9363}} SIDs
 starts at 5000 and {{GPC-SPE-207}} at 10000. 
 
-The CBOR message is 365 bytes long as shown {{fig-cbor-serial}}.
+The CBOR message is 357 bytes long as shown {{fig-cbor-serial}}.
 
 ~~~~~
 b'a11913e7a10181a4048ca7061913bf070208010519139b091913db011913970d81a20100024101a7
@@ -546,9 +546,9 @@ b'a11913e7a10181a4048ca7061913bf070208010519139b091913db011913970d81a20100024101
 00024101a8061913a2071008010519139a091913de0a81a20100024107011913950d81a20100024100
 a6061913b907d82d1913d508010519139b091913dc01191398a6061913b907d82d1913d50802051913
 9b091913dc01191398a6061913bb07d82d1913d508010519139b091913dc01191398a6061913bb07d8
-2d1913d508020519139b091913dc01191398a7061913a407d82d1913d508010519139b091913db0119
-13970d81a2010002413ca7061913ae07d82d1913d508010519139b091913db011913970d81a2010002
-4102a60619271107d82d1913d508010519139b091913dc0119139818220818210118231913e0'
+2d1913d508020519139b091913dc01191398a7061913a4070808010519139b091913db011913970d81
+a2010002413ca7061913ae070808010519139b091913db011913970d81a20100024102a60619271107
+d82d1913d508010519139b091913dc0119139818220818210818231913e0'
 ~~~~~
 {: #fig-cbor-serial title="CBOR serialisation." artwork-align="center"}
 
@@ -565,6 +565,10 @@ Deltas in entry part:
 - 10: matching-operator-value
 - 13: target-value
 
+Deltas in the rule part:
+- 33: rule-id-length
+- 34: rule-id-value
+- 35: rule-nature
 
 {5095: {1: [{4: [
   {6: 5055, 7: 2, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'01'}]}, 
@@ -572,20 +576,20 @@ Deltas in entry part:
   {6: 5052, 7: 4, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'00'}]}, 
   {6: 5023, 7: 8, 8: 1, 5: 5018, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'01'}]}, 
   {6: 5026, 7: 16, 8: 1, 5: 5018, 9: 5086, 
-                  10: [{1: 0, 2: h'07'}], 1: 5013, 13: [{1: 0, 2: h'00'}]},
+                10: [{1: 0, 2: h'07'}], 1: 5013, 13: [{1: 0, 2: h'00'}]}, 
   {6: 5049, 7: 45(5077), 8: 1, 5: 5019, 9: 5084, 1: 5016}, 
   {6: 5049, 7: 45(5077), 8: 2, 5: 5019, 9: 5084, 1: 5016}, 
   {6: 5051, 7: 45(5077), 8: 1, 5: 5019, 9: 5084, 1: 5016}, 
   {6: 5051, 7: 45(5077), 8: 2, 5: 5019, 9: 5084, 1: 5016}, 
-  {6: 5028, 7: 45(5077), 8: 1, 5: 5019, 9: 5083, 1: 5015,
-                                                    13: [{1: 0, 2: h'3C'}]},
-  {6: 5038, 7: 45(5077), 8: 1, 5: 5019, 9: 5083, 1: 5015, 
-                                                    13: [{1: 0, 2: h'02'}]}, 
+  {6: 5028, 7: 8, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'3C'}]}, 
+  {6: 5038, 7: 8, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'02'}]}, 
   {6: 10001, 7: 45(5077), 8: 1, 5: 5019, 9: 5084, 1: 5016}], 
-34: 8, 33: 1, 35: 5088}
-]}}
+34: 8, 33: 8, 35: 5088}]}}
 ~~~
 {: #fig-cbor-diag title="CBOR diagnostic notation." artwork-align="center"}
+
+Note that the coding of rule-id-value, rule-id-lenght and rule-nature is not optimal, 
+since the delta is higher than 23, and correspond to 2 bytes in the CBOR encoding.
 
 CORECONF request to access to the target value of the Accept option is given in {{fig-query}}. The size of the CoAP payload is 14 bytes.
 
@@ -612,7 +616,275 @@ The SCHC packet {{fig-residue}} has a size of 389 bits or 49 bytes with the alig
 
 ### Universal Options (Laurent)
 
-The change for options described in this document
+We assign SIDs starting from 7000 to the YANG DM augmentation defined in this document. All the CoAP options are defined by a space ID indicating CoAP and the option number used in CoAP. Option CSP82-Param is processed like any other options. 
+
+The CBOR message is 481 bytes long as shown {{fig-cbor-serial}}.
+
+~~~
+b'a11913e7a10181a4048ca7061913bf070208010519139b091913db011913970d81a20100024101a7
+061913be070208010519139a091913db011913970d81a20100024100a7061913bc070408010519139b
+091913db011913970d81a20100024100a70619139f070808010519139a091913db011913970d81a201
+00024101a8061913a2071008010519139a091913de0a81a20100024107011913950d81a20100024100
+a719077c191b5a19077b0b190775d82d1913d51907760119077419139b1907771913dc190770191398
+a719077c191b5a19077b0b190775d82d1913d51907760219077419139b1907771913dc190770191398
+a719077c191b5a19077b0f190775d82d1913d51907760119077419139b1907771913dc190770191398
+a719077c191b5a19077b0f190775d82d1913d51907760219077419139b1907771913dc190770191398
+a819077c191b5a19077b11190775081907760119077419139b1907771913db19077019139719077d81
+a2010002413ca819077c191b5a19077b190102190775d82d1913d51907760119077419139b19077719
+13db19077019139719077d81a20100024102a719077c191b5a19077b190807190775d82d1913d51907
+760119077419139b1907771913dc19077019139818220818210818231913e0'
+~~~
+{: #fig-cbor-serial2 title="CBOR serialisation." artwork-align="center"}
+
+The diagnostic representation of the CBOR message is the following:
+
+~~~
+Deltas in entry part:
+- 6: field-id                     **1916: space-id  
+- 7: field-length                 **1915: option-value 
+- 8: field-position               **1909: field-length
+- 5: direction-indicator          **1910: field-position
+- 9: matching-operator            **1908: direction-indicator
+- 1: comp-decomp-action           **1911: matching-operator  
+- 10: matching-operator-value     **1917: target-value
+- 13: target-value                
+
+Deltas in the rule part:
+* 33: rule-id-length
+* 34: rule-id-value
+* 35: rule-nature
+
+{5095: {1: [{4: [
+  {6: 5055, 7: 2, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'01'}]}, 
+  {6: 5054, 7: 2, 8: 1, 5: 5018, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'00'}]}, 
+  {6: 5052, 7: 4, 8: 1, 5: 5019, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'00'}]}, 
+  {6: 5023, 7: 8, 8: 1, 5: 5018, 9: 5083, 1: 5015, 13: [{1: 0, 2: h'01'}]}, 
+  {6: 5026, 7: 16, 8: 1, 5: 5018, 9: 5086, 
+                    10: [{1: 0, 2: h'07'}], 1: 5013, 13: [{1: 0, 2: h'00'}]}, 
+  {1916: 7002, 1915: 11, 1909: 45(5077), 1910: 1, 1908: 5019, 1911: 5084, 1904: 5016}, 
+  {1916: 7002, 1915: 11, 1909: 45(5077), 1910: 2, 1908: 5019, 1911: 5084, 1904: 5016}, 
+  {1916: 7002, 1915: 15, 1909: 45(5077), 1910: 1, 1908: 5019, 1911: 5084, 1904: 5016}, 
+  {1916: 7002, 1915: 15, 1909: 45(5077), 1910: 2, 1908: 5019, 1911: 5084, 1904: 5016}, 
+  {1916: 7002, 1915: 17, 1909: 8, 1910: 1, 1908: 5019, 1911: 5083, 1904: 5015, 
+                                                1917: [{1: 0, 2: h'3C'}]}, 
+  {1916: 7002, 1915: 258, 1909: 45(5077), 1910: 1, 1908: 5019, 1911: 5083, 1904: 5015, 
+                                                1917: [{1: 0, 2: h'02'}]},
+  {1916: 7002, 1915: 2055, 1909: 45(5077), 1910: 1, 1908: 5019, 1911: 5084, 1904: 5016}], 
+34: 8, 33: 8, 35: 5088}]}}
+~~~
+{: ##fig-cbor-diag2  title="CBOR serialisation." artwork-align="center"}
+
+It can be noted that the CoAP options part, delta are very large and takes 3 bytes for
+encode then in CBOR. We uses another range of SIDs for the augmentation, based on the
+standard allocation procedure, where each YANG DM has its own range. 
+
+CORECONF request to access to the target value of the Accept option is given in {{fig-query}}. The size of the CoAP payload is 15 bytes.
+
+~~~
+REQ: FETCH </c>
+        (Content-Format: application/yang-identifiers+cbor-seq)
+   [7019,     / .../target-value/value 
+    8,        / rule-id-value
+    1,        / rule-id-length
+    7002,     / space-id-value
+    17,       / option-value
+    1,        / field-position
+    5019,     / direction-indicator
+    0]        / target-value/index
+~~~
+{: #fig-query2 title="CORECONF query to Accept TV." artwork-align="center"}
+
+## Merged
+
+Instead of having two Data Models, RFC9363 and Universal Options defined in this document are merged into
+single Data Model, called 9363bis. The SID allocation process remains inchanged and SID are allocated automatically
+using the numbering based on alphabetical order.
+
+The CBOR serialization leads to 400 Bytes of data.
+~~~
+b'a11913e9a10181a4048ca7171913bf1818021819011619139b181a1913db12191397181e81a20100
+024101a7171913be1818021819011619139a181a1913db12191397181e81a20100024100a7171913bc
+1818041819011619139b181a1913db12191397181e81a20100024100a71719139f1818081819011619
+139a181a1913db12191397181e81a20100024101a8171913a21818101819011619139a181a1913de18
+1b81a2010002410712191395181e81a20100024100a70e1913e60d0b07d82d1913d508010619139b09
+1913dc02191398a70e1913e60d0b07d82d1913d508020619139b091913dc02191398a70e1913e60d0f
+07d82d1913d508010619139b091913dc02191398a70e1913e60d0f07d82d1913d508020619139b0919
+13dc02191398a80e1913e60d11070808010619139b091913db021913970f81a2010002413ca80e1913
+e60d19010207d82d1913d508010619139b091913db021913970f81a20100024102a70e1913e60d1908
+0707d82d1913d508010619139b091913dc0219139818330818320818341913e0'
+~~~
+{: #fig-cbor-serial3 title="CBOR serialisation." artwork-align="center"}
+
+They can be represented in the diagnostic notation 
+~~~
+Deltas in entry part:
+- 23: field-id                     -14: space-id  
+* 24: field-length                 -11: option-value 
+* 25: field-position               -7: field-length
+- 22: direction-indicator          -8: field-position
+* 26: matching-operator            -6: direction-indicator
+- 18: comp-decomp-action           -9: matching-operator  
+* 27: matching-operator-value      -15: target-value
+* 30: target-value                 
+
+Deltas in the rule part:
+* 50: rule-id-length
+* 51: rule-id-value
+* 52: rule-nature
+
+{5097: {1: [{4: [
+  {23: 5055, 24: 2, 25: 1, 22: 5019, 26: 5083, 18: 5015, 30: [{1: 0, 2: h'01'}]}, 
+  {23: 5054, 24: 2, 25: 1, 22: 5018, 26: 5083, 18: 5015, 30: [{1: 0, 2: h'00'}]}, 
+  {23: 5052, 24: 4, 25: 1, 22: 5019, 26: 5083, 18: 5015, 30: [{1: 0, 2: h'00'}]}, 
+  {23: 5023, 24: 8, 25: 1, 22: 5018, 26: 5083, 18: 5015, 30: [{1: 0, 2: h'01'}]}, 
+  {23: 5026, 24: 16, 25: 1, 22: 5018, 26: 5086, 
+                       27: [{1: 0, 2: h'07'}], 18: 5013, 30: [{1: 0, 2: h'00'}]}, 
+  {14: 5094, 13: 11, 7: 45(5077), 8: 1, 6: 5019, 9: 5084, 2: 5016}, 
+  {14: 5094, 13: 11, 7: 45(5077), 8: 2, 6: 5019, 9: 5084, 2: 5016}, 
+  {14: 5094, 13: 15, 7: 45(5077), 8: 1, 6: 5019, 9: 5084, 2: 5016}, 
+  {14: 5094, 13: 15, 7: 45(5077), 8: 2, 6: 5019, 9: 5084, 2: 5016}, 
+  {14: 5094, 13: 17, 7: 8, 8: 1, 6: 5019, 9: 5083, 2: 5015, 
+                                                      15: [{1: 0, 2: h'3C'}]}, 
+  {14: 5094, 13: 258, 7: 45(5077), 8: 1, 6: 5019, 9: 5083, 2: 5015, 
+                                                      15: [{1: 0, 2: h'02'}]}, 
+  {14: 5094, 13: 2055, 7: 45(5077), 8: 1, 6: 5019, 9: 5084, 2: 5016}], 
+51: 8, 50: 8, 52: 5088}]}}
+~~~
+{: #fig-cbor-diag3  title="CBOR serialisation." artwork-align="center"}
+
+I can be noted that some delta values are higher than 23, leading to a 2 bytes encoding in
+CBOR.
+
+Query and compressed packet are not represented, since the result are the same. The ID in the
+query may differs since the SID allocation may be slightly different, but the size is unchanged.
+
+## Ordered 
+
+This time the SID file is manually edited to optimize the delta values. The Data Model is
+exactly the same as in the previous example.
+
+The CBOR serialization is 376 Byte long, 16 bytes longuer than the RFC 9363 with
+specific SIDs for CoAP option.
+
+~~~
+b'a119139fa11781a4178ca71719142228022701161913fe2619143e121913fa2281a20100024101a7
+1719142128022701161913fd2619143e121913fa2281a20100024100a71719141f28042701161913fe
+2619143e121913fa2281a20100024100a71719140228082701161913fd2619143e121913fa2281a201
+00024101a81719140528102701161913fd261914412581a20100024107121913f82281a20100024100
+a70e1914490d0b07d82d1914380801061913fe0919143f021913fba70e1914490d0b07d82d19143808
+02061913fe0919143f021913fba70e1914490d0f07d82d1914380801061913fe0919143f021913fba7
+0e1914490d0f07d82d1914380802061913fe0919143f021913fba80e1914490d1107080801061913fe
+0919143e021913fa0f81a2010002413ca80e1914490d19010207d82d1914380801061913fe0919143e
+021913fa0f81a20100024102a70e1914490d19080707d82d1914380801061913fe0919143f021913fb
+2a0829082b191443
+~~~
+{: #fig-cbor-serial4 title="CBOR serialisation." artwork-align="center"}
+
+The diagnostic notation, shows that with positive and negative deltas, they can
+be coded on a single byte.
+
+~~~
+Deltas in entry part:
+- 23: field-id                     -14: space-id  
+* -9: field-length                 -11: option-value 
+* -8: field-position               -7: field-length
+- 22: direction-indicator          -8: field-position
+* -7: matching-operator            -6: direction-indicator
+- 18: comp-decomp-action           -9: matching-operator  
+* -6: matching-operator-value      -15: target-value
+* -3: target-value                 
+
+Deltas in the rule part:
+* -11: rule-id-length
+* -10: rule-id-value
+* -12: rule-nature
+
+{5023: {23: [{23: [
+  {23: 5154, -9: 2, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, 
+  {23: 5153, -9: 2, -8: 1, 22: 5117, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, 
+  {23: 5151, -9: 4, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, 
+  {23: 5122, -9: 8, -8: 1, 22: 5117, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, 
+  {23: 5125, -9: 16, -8: 1, 22: 5117, -7: 5185, 
+                       -6: [{1: 0, 2: h'07'}], 18: 5112, -3: [{1: 0, 2: h'00'}]}, 
+  {14: 5193, 13: 11, 7: 45(5176), 8: 1, 6: 5118, 9: 5183, 2: 5115}, 
+  {14: 5193, 13: 11, 7: 45(5176), 8: 2, 6: 5118, 9: 5183, 2: 5115}, 
+  {14: 5193, 13: 15, 7: 45(5176), 8: 1, 6: 5118, 9: 5183, 2: 5115}, 
+  {14: 5193, 13: 15, 7: 45(5176), 8: 2, 6: 5118, 9: 5183, 2: 5115}, 
+  {14: 5193, 13: 17, 7: 8, 8: 1, 6: 5118, 9: 5182, 2: 5114, 
+                                                         15: [{1: 0, 2: h'3C'}]}, 
+  {14: 5193, 13: 258, 7: 45(5176), 8: 1, 6: 5118, 9: 5182, 2: 5114, 
+                                                         15: [{1: 0, 2: h'02'}]}, 
+  {14: 5193, 13: 2055, 7: 45(5176), 8: 1, 6: 5118, 9: 5183, 2: 5115}],
+-11: 8, -10: 8, -12: 5187}]}}
+~~~
+{: #fig-cbor-diag4  title="CBOR serialisation." artwork-align="center"}
+
+{{fig-sid-assignation}} shows how SIDs where manually allocated.  
+
+~~~
+5023;data;/ietf-schc:schc
+...
+5030;data;/ietf-schc:schc/rule/window-size
+5031;data;/ietf-schc:schc/rule/w-size
+5032;data;/ietf-schc:schc/rule/tile-size
+5033;data;/ietf-schc:schc/rule/tile-in-all-1
+5034;data;/ietf-schc:schc/rule/rule-nature
+5035;data;/ietf-schc:schc/rule/rule-id-value
+5036;data;/ietf-schc:schc/rule/rule-id-length
+5037;data;/ietf-schc:schc/rule/retransmission-timer/ticks-numbers
+5038;data;/ietf-schc:schc/rule/retransmission-timer/ticks-duration
+5039;data;/ietf-schc:schc/rule/retransmission-timer
+5040;data;/ietf-schc:schc/rule/rcs-algorithm
+5041;data;/ietf-schc:schc/rule/maximum-packet-size
+5042;data;/ietf-schc:schc/rule/max-interleaved-frames
+5043;data;/ietf-schc:schc/rule/dtag-size
+5044;data;/ietf-schc:schc/rule/direction
+5045;data;/ietf-schc:schc/rule/ack-behavior
+5046;data;/ietf-schc:schc/rule
+5047;data;/ietf-schc:schc/rule/fcn-size
+5048;data;/ietf-schc:schc/rule/fragmentation-mode
+5049;data;/ietf-schc:schc/rule/inactivity-timer
+5050;data;/ietf-schc:schc/rule/inactivity-timer/ticks-duration
+5051;data;/ietf-schc:schc/rule/inactivity-timer/ticks-numbers
+5052;data;/ietf-schc:schc/rule/l2-word-size
+5053;data;/ietf-schc:schc/rule/max-ack-requests
+...
+5060;data;/ietf-schc:schc/rule/entry/field-length
+5061;data;/ietf-schc:schc/rule/entry/field-position
+5062;data;/ietf-schc:schc/rule/entry/matching-operator
+5063;data;/ietf-schc:schc/rule/entry/matching-operator-value
+5064;data;/ietf-schc:schc/rule/entry/matching-operator-value/index
+5065;data;/ietf-schc:schc/rule/entry/matching-operator-value/value
+5066;data;/ietf-schc:schc/rule/entry/target-value
+5067;data;/ietf-schc:schc/rule/entry/target-value/index
+5068;data;/ietf-schc:schc/rule/entry/target-value/value
+5069;data;/ietf-schc:schc/rule/entry
+5070;data;/ietf-schc:schc/rule/entry-option-space
+5071;data;/ietf-schc:schc/rule/entry-option-space/comp-decomp-action
+5072;data;/ietf-schc:schc/rule/entry-option-space/comp-decomp-action-value
+5073;data;/ietf-schc:schc/rule/entry-option-space/comp-decomp-action-value/index
+5074;data;/ietf-schc:schc/rule/entry-option-space/comp-decomp-action-value/value
+5075;data;/ietf-schc:schc/rule/entry-option-space/direction-indicator
+5076;data;/ietf-schc:schc/rule/entry-option-space/field-length
+5077;data;/ietf-schc:schc/rule/entry-option-space/field-position
+5078;data;/ietf-schc:schc/rule/entry-option-space/matching-operator
+5079;data;/ietf-schc:schc/rule/entry-option-space/matching-operator-value
+5080;data;/ietf-schc:schc/rule/entry-option-space/matching-operator-value/index
+5081;data;/ietf-schc:schc/rule/entry-option-space/matching-operator-value/value
+5082;data;/ietf-schc:schc/rule/entry-option-space/option-value
+5083;data;/ietf-schc:schc/rule/entry-option-space/space-id
+5084;data;/ietf-schc:schc/rule/entry-option-space/target-value
+5085;data;/ietf-schc:schc/rule/entry-option-space/target-value/index
+5086;data;/ietf-schc:schc/rule/entry-option-space/target-value/value
+5087;data;/ietf-schc:schc/rule/entry/comp-decomp-action
+5088;data;/ietf-schc:schc/rule/entry/comp-decomp-action-value
+5089;data;/ietf-schc:schc/rule/entry/comp-decomp-action-value/index
+5090;data;/ietf-schc:schc/rule/entry/comp-decomp-action-value/value
+5091;data;/ietf-schc:schc/rule/entry/direction-indicator
+5092;data;/ietf-schc:schc/rule/entry/field-id
+~~~
+{: #fig-sid-assignation  title="CBOR serialisation." artwork-align="center"}
+
 
 ## Syntatic compression (Quentin)
 
@@ -625,15 +897,15 @@ with Corentin proposal to flatten the rule entries
 ## Summary
 
 ~~~
-  +--------+------------+------------+------------+------------+
-  |        | RFC9363    |  Univ Opt  | Syntatic   |  Revised   |
-  +--------+------------+------------+------------+------------+
-  |CORECONF|    365     |            |            |            |
-  +--------+------------+------------+------------+------------+
-  |Query   |     14     |            |            |            |
-  +--------+------------+------------+------------+------------+
-  |SCHC pkt|     49     |            |            |            |
-  +--------+------------+------------+------------+------------+
+  +--------+---------+----------+--------+---------+------------+---------+
+  |        | RFC9363 | Univ Opt | merged | ordered |  Syntactic | Revised |
+  +--------+---------+==========+========+=========+------------+---------+
+  |CORECONF|    357  |     481  |    400 |     376 |            |         |       
+  +--------+---------+----------+--------+---------+------------+---------+
+  |Query   |     14  |      15  |     15 |      15 |            |         |
+  +--------+---------+----------+--------+---------+------------+---------+
+  |SCHC pkt|     49  |      49  |     49 |      49 |            |         |
+  +--------+---------+----------+--------+---------+------------+---------+
 
 ~~~
 
