@@ -32,6 +32,13 @@ author:
         code: 35576
         country: France
         email: Laurent.Toutain@imt-atlantique.fr
+      - name: Corentin Banier
+        org: IMT Atlantique
+        street: CS 17607, 2 rue de la Chataigneraie
+        city: Cesson-Sevigne Cedex
+        code: 35576
+        country: France
+        email: corentin.banier@imt-atlantique.fr
 
 normative:
   RFC8724:
@@ -40,6 +47,7 @@ normative:
   I-D.ietf-core-comi:
   I-D.ietf-lpwan-architecture:
   I-D.toutain-schc-universal-option:
+  I-D.toutain-schc-sid-allocation:
 informative:
 
 entity:
@@ -58,13 +66,13 @@ This document describe how CORECONF management can be applied to SCHC Context.
 
 {{RFC9254}} defines a way to serialize data issued from a YANG DM into a CBOR representation and {{I-D.ietf-core-comi}} defines the CoAP interface.
 
-This document describes in which condition management can be done, how to managed rules inside an SCHC instance using CORECONF and proposes some compression rules for the protocol headers.
+This document describes in which condition management can be done, how to manage rules inside an SCHC instance using CORECONF and proposes some compression rules for the protocol headers.
 
 # Applicability statement
 
 ## Architecture
 
-SCHC instance mamangement allows the two end-points to modify the common SoR, by:
+SCHC instance management allows the two end-points to modify the common SoR, by:
 
 * modifyng rules values (such as TV, MO or CDA) in existing rules
 * adding a new rule or 
@@ -73,7 +81,7 @@ SCHC instance mamangement allows the two end-points to modify the common SoR, by
 The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}.  M Rules can be either Compression rules or No compression rules. Only M rules can modify the SoR.
 
 
-SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to mamagenement inside an QUIC connection) or directly using OSCORE of DTLS.
+SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to managenement inside a QUIC connection) or directly using OSCORE of DTLS.
 
 ~~~~ aasvg
 +-----------------+                 +-----------------+
@@ -97,7 +105,7 @@ Management requests MUST be protected against packet losts. It is RECOMMENDED to
 
 ## Rule modification
 
-SCHC imposes both ends to share exactily the same SoR, so a new or modified rule can be used, until the rule remains candidate until the other end has validated the modification. 
+SCHC imposes both ends to share exactly the same SoR, therefore, a new or modified rule could be used, until the rule remains candidate until the other end has validated the modification. 
 A canditate rule cannot be used, either in C/D or F/R. A SCHC PDU MUST not be generated with a candidate rule ID and received PDU containing 
 a candidate rule must be dropped.  
 
@@ -154,11 +162,11 @@ After the rule deletion, a Guard period is established. During that period, a ru
 ## Set of Rules Editing
 
 CORECONF proposes an interface to manage data structured with a YANG Data Model. RFC 9363 defines a YANG Data Model for SCHC Rules. 
-SCHC Instance Management MUST use a FETCH to read a rule, iPATCH to modify or create a rule and DELETE to suppress it. 
+SCHC Instance Management MUST use a FETCH to read a rule and iPATCH to create, modify or delete a rule.
 
-For clarity reasons, the document will use YANG Identifier in quote instaed of the SID value.
+For clarity reasons, the document will use YANG Identifier in quote instead of the SID value.
 
-The YANG tree reprensents the Rule structure as defined in RFC 9363:
+The YANG tree represents the Rule structure as defined in RFC 9363:
 
 ~~~
 
@@ -216,9 +224,38 @@ module: ietf-schc
 ~~~
 {: #Fig-tree title='Modifying a rule'}
 
-Almost all the lines of the tree as a SID number. Each level of the hierarchy is accessible through one or several keys. For example, to access the hierarchy under "rule", "rule-id-value" and "rule-id-length" must be specified. To access the hierarchy describing an entry in a compression rule, "rule-id-value" and "rule-id-length" followed "field-id", "field-position" and "direction-indicator". Since the Target Value is stored as list, "index" must be added to access a specific element. 
+Almost all the lines of the tree as a SID number. Each level of the hierarchy is accessible through one or several keys. For example, to access the hierarchy under "rule", "rule-id-value" and "rule-id-length" must be specified. To access the hierarchy describing an entry in a compression rule, "rule-id-value" and "rule-id-length" followed by "field-id", "field-position" and "direction-indicator". Since the TV, MO-value and CDA-value are stored as list, "index" must be added to access a specific element.
 
-Therefore to access a specific element in a hierarchy, the SID of this element has to be specified, followed by the keys needed to access it. For example ["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectionnal", 0] is used to access to the first value (0) target value for the IPv6 version of Rule 5/3. 
+Therefore to access a specific element in a hierarchy, the SID of this element has to be specified, followed by the keys needed to access it. 
+
+For example, ["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0] is used to access to the first value (0) of TV for the IPv6 Version of Rule 5/3. 
+
+### FETCH
+As mentionned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
+
+Example : Fetching Target Value, Matching Operator and Compression Decompression Action of (IPv6 Version / 1 / bidirectional) from rule 6/3.
+~~~
+REQ: FETCH /c
+     (Content-Format: application/yang-identifiers+cbor-seq)
+["target-value",       6, 3, "fid-ipv6-version", 1, "di-bidirectional"],
+["matching-operator",  6, 3, "fid-ipv6-version", 1, "di-bidirectional"],
+["comp-decomp-action", 6, 3, "fid-ipv6-version", 1, "di-bidirectional"]
+
+RES: 2.05 Content
+     (Content-Format: application/yang-instances+cbor-seq)
+{
+  {"target-value"       : [{"index" : 0, "value" : "Bg=="}]},
+  {"matching-operator"  : "mo-equal"},
+  {"comp-decomp-action" : "cda-not-sent"}
+}
+~~~
+
+### iPATCH
+leaf-list specific treatment as indexes should be in a row
+#### Delete
+#### Update
+#### Add
+
 
 For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, the following command also the specify a TV and change the MO and CDA:
 
@@ -255,7 +292,7 @@ iPATH /c
 }
 ~~~
 
-This process imposes to send the full rule in the value part, so an optimization can be done by deriving a exisiting rule and modify some parameters. 
+This process imposes to send the full rule in the value part, so an optimization can be done by deriving an exisiting rule and modify some parameters. 
 
 {{I-D.toutain-schc-universal-option}} augments the data model for universal options. This add to compression rules a new entry format where a field is indexed with:
 
