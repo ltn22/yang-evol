@@ -233,7 +233,7 @@ For example, ["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirection
 ### FETCH
 As mentionned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
 
-Example : Fetching TV, MO and CDA of (IPv6 Version / 1 / bidirectional) from rule 6/3.
+Example : Fetching TV, MO and CDA of the Entry fid-ipv6-version/1/bidirectional from Rule 6/3.
 ~~~
 REQ: FETCH /c
      (Content-Format: application/yang-identifiers+cbor-seq)
@@ -255,7 +255,7 @@ RES: 2.05 Content
 To write an iPATCH request, several methods could be used. For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, these following commands specify a new TV and change the MO and CDA :
 - Specified all conserned fields :
   ~~~
-  iPATH /c 
+  iPATCH /c 
   {
     ["target-value", 7, 8, field, 1, "di-bidirectional"] : [{delta_TV: 0, delta_value: value}],
     ["matching-operator", 7, 8, field, 1, "bi-directional"] : "mo-equal",
@@ -265,7 +265,7 @@ To write an iPATCH request, several methods could be used. For instance, in a Ru
 
 - This can also be specified in a single entry, by setting the sub-tree:
   ~~~
-  iPATH /c 
+  iPATCH /c 
   {
     ["entry", 7, 8, field, 1, "di-bidirectional"] : { 
         delta_target-value       : [{delta_index : 0, delta_value : value}],
@@ -279,6 +279,7 @@ The same principle is applied to rules and "leaf-list". However, each index of "
 
 
 #### Add
+
 If the target object doesn't exist in the context, then it is appended. As if the request is adding looking to add a leaf-list item, a cheching is processed. For instance, if ["target-value", 6, 3, "fid-ipv6-flowlabel", 1, "di-bidirectional"] corresponds to [{"index" : 0, "value" : "AO8t"}]. The following request might return an error.
 ~~~
 REQ: iPATCH /c
@@ -289,7 +290,7 @@ REQ: iPATCH /c
   }
 }
 
-RES: TO DO ERROR NUMBER
+RES: 4.00 Bad Request
 ~~~
 
 Here is correct request :
@@ -305,12 +306,12 @@ REQ: iPATCH /c
 RES: 2.04 Changed
 ~~~
 
-
 #### Update
+
 A request can be considered as an update if the target associated with the various keys is present in the context. Otherwise, it could be consider as an add or an error.
 
 Example : 
-- The Entry fid-ipv6-version / 1 / di-bidirectional is in Rule 6/3.
+- The Entry fid-ipv6-version/1/di-bidirectional is in Rule 6/3.
 ~~~
 REQ: iPATCH /c
      (Content-Format: application/yang-identifiers+cbor-seq)
@@ -325,7 +326,7 @@ REQ: iPATCH /c
 RES: 2.04 Changed
 ~~~
 
-- The Entry fid-ipv6-version / 1 / di-bidirectional is in not in Rule 7/8 but Rule 7/8 exist.
+- The Entry fid-ipv6-version/1/di-bidirectional is in not in Rule 7/8 but Rule 7/8 exist.
 ~~~
 REQ: iPATCH /c
      (Content-Format: application/yang-identifiers+cbor-seq)
@@ -340,7 +341,7 @@ REQ: iPATCH /c
 RES: 2.04 Changed
 ~~~
 
-- The Entry fid-ipv6-version / 1 / di-bidirectional is not in Rule 5/8, and Rule 5/8 does not exist. Therefore, rule 5/8 cannot be added in order to include the Entry fid-ipv6-version / 1 / di-bidirectional because other fields, which are not keys, cannot be deducted at every depth of the context.
+- The Entry fid-ipv6-version/1/di-bidirectional is not in Rule 5/8, and Rule 5/8 does not exist. Therefore, Rule 5/8 cannot be added in order to include the Entry fid-ipv6-version/1/di-bidirectional because other fields, which are not keys, cannot be deducted at every depth of the context.
 ~~~
 REQ: iPATCH /c
      (Content-Format: application/yang-identifiers+cbor-seq)
@@ -352,7 +353,7 @@ REQ: iPATCH /c
   }
 }
 
-RES: TO DO ERROR NUMBER
+RES: 4.04 Not Found
 ~~~
 
 #### Delete
