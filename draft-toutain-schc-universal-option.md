@@ -18,6 +18,9 @@ submissiontype: IETF
 coding: utf-8
 
 author:
+      - name: Quentin Lampin
+        org: Orange
+        email: quentin.lampin@orange.com
       - name: Ana Minaburo
         org: Consultant
         street: Rue de Rennes
@@ -67,19 +70,42 @@ The idea of keeping option identifiers in SCHC Rules simplifies the interoperabi
 
 # Introduction # {#intro}
 
-Static Context Header Compression (SCHC) enables efficient communication in constrained networks by compressing protocol headers using predefined Rules. This document proposes improvements to how SCHC handles protocol options, as for CoAP (Constrained Application Protocol).
+Static Context Header Compression (SCHC) provides an essential mechanism for efficient communication in constrained networks by compressing protocol headers using predefined Rules. Originally developed for Low Power Wide Area Networks (LPWANs), SCHC has proven effective in scenarios with limited bandwidth, power constraints, and predictable traffic patterns.
 
+The YANG Data Model defined in {{RFC9363}} was designed primarily for LPWAN technologies, focusing on highly constrained devices such as sensors and actuators that generate predictable traffic patterns, which allowed for static compression rules. This model also incorporates CoAP parameters defined in {{RFC8824}}, representing CoAP options as specific Field Identifiers (FIDs) within SCHC Rules.
 
-The Data Model defined in {{RFC9363}} was written based on LPWAN technologies while the working group was developing a solution for those devices. When the {{RFC9363}} was developed, the group targeted devices such as sensors and actuators with very constrained resources but these devices have very predictable traffic leading to very static rules. Also, the data model includes CoAP parameters defined in {{RFC8824}}.
+While this approach works well in controlled LPWAN environments, it presents interoperability challenges when SCHC is applied to more dynamic networks or when protocols evolve to incorporate new options. The primary issue arises from the disconnection between protocol option identifiers and SCHC Field Identifiers (FIDs), making it difficult to efficiently handle newly defined or private options without disrupting existing implementations.
+
+This document proposes a more flexible approach to representing protocol options in SCHC YANG Data Models. By preserving original protocol option identifiers within SCHC Rules, we aim to:
+
+* Improve interoperability between SCHC implementations
+
+* Enable more graceful handling of protocol evolution
+
+* Simplify Rule management between SCHC endpoints
+
+* Support compression of newly defined or private options without requiring updates to the SCHC implementation
+
+The following sections examine the current challenges in detail, explore potential solutions including both semantic and syntactic compression approaches, and propose extensions to the YANG Data Model that preserve protocol option identifiers while maintaining efficient compression capabilities.
 
 # Current Challenges
 
 
-Since CoAP is a more flexible protocol compared to IPv6 (without extensions) or UDP, given that CoAP includes options. The data model redefined these options as identifiers that are included in SCHC Rules as Field ID (FID).
+The fundamental challenge in SCHC compression for protocols with options stems from how options are represented in the SCHC Data Model. Unlike the relatively static headers of IPv6 or UDP, CoAP includes a flexible options mechanism that allows for protocol extension through new options.
 
-If this approach was acceptable for LPWAN technologies that have a  static and controlled environment, the generalization of SCHC to more dynamic environment is a source of interoperability issues. Even though, this solution will become more accurate when rule management between two end-points in a SCHC instance is used to optimize compression.
+## Option Representation Problem
 
-The following scenario (cf. {{fig-rule-mngt}}) illustrates this issue and assumes that the traffic is CoAP based, even if this can be extended to other protocols with options.
+
+In the current SCHC Data Model defined in {{RFC9363}}, CoAP options are represented as predefined Field Identifiers (FIDs) that are included in SCHC Rules. Each option is essentially abstracted away from its original protocol identifier and assigned a new SCHC-specific identifier. While this approach works adequately in static LPWAN environments where the set of options is known in advance and rarely changes, it creates significant challenges in more dynamic networks or when protocols evolve.
+
+
+The core problem is that the mapping between protocol option identifiers (as defined in the protocol specification) and SCHC FIDs is not standardized or predictable. When a new CoAP option is defined after a SCHC implementation is deployed, there is no straightforward mechanism for the implementation to assign an appropriate FID to this option or to communicate this assignment to other SCHC implementations.
+
+
+## Rule Management Challenges
+
+This limitation becomes particularly problematic in scenarios involving rule management between two SCHC endpoints. The following scenario (cf. {{fig-rule-mngt}}) illustrates this issue:
+
 
 ~~~~ aasvg
               rule mngt
@@ -92,12 +118,16 @@ A <-------> S1 <~~~~~~> S2 <-----> B
 
 In this scenario:
 
-* Device A generates CoAP packets with various options.
-* SCHC nodes S1 and S2 compress and decompress the traffic using shared Rules.
-* When A uses a newly defined or private option, S1 can derive new Rules to optimize compression, including this option.
-* The challenge lies in communicating these new Field IDs (FIDs) to S2
+* Device A generates CoAP packets that may include various options, including newly defined ones.
 
-Suppose that a Rule defines just a CoAP header, and a more specific Rule is derived including a URI-path. The entry (cf. {{fig-entry-uri-path}}) is present in the derived Rule. {{RFC9363}} defines identityref for several elements, (respectively fid:coap-option-uri-path, di:up, mo:equal and cda:not-sent) that can be used to send the Rule description to the other side.
+* SCHC nodes S1 and S2 compress and decompress the traffic using Rules they share.
+
+* When A uses a newly defined or private option, S1 can parse this option (as the CoAP header structure remains consistent) and could potentially derive a new Rule to optimize compression.
+
+* However, S1 faces a critical problem: how to identify this new option in the Rule and communicate this identifier to S2 in a way that S2 can understand which option is involved and correctly reconstruct the header.
+
+For example, suppose a Rule defines just a CoAP header, and S1 derives a more specific Rule including a URI-path. The entry shown in {{fig-entry-uri-path}} can be added to the derived Rule, and {{RFC9363}} defines appropriate identityref values (respectively fid:coap-option-uri-path, di:up, mo:equal and cda:not-sent)  that can be used to communicate this Rule description to S2.
+
 
 ~~~~ aasvg
 +--------------+-----+---+----+-------+-------+---------+
@@ -109,7 +139,7 @@ Suppose that a Rule defines just a CoAP header, and a more specific Rule is deri
 ~~~~
 {: #fig-entry-uri-path title="New entry added by management" artwork-align="center"}
 
-Now suppose that A uses a recently defined option or a private option. In S1, nothing is changed, the CoAP header is parsed, the new option is discovered, and a Rule is derived to compress the option. The only blocking element is the identification of this new FID in the Rule and how S1 sends it to the other end-point to understand which option is involved (cf {{fig-new-fid}}) and what is the value for reconstructing the header.
+However, when A uses a recently defined option or a private option that was not known when the SCHC implementation was created, S1 cannot represent this option using existing FIDs. While S1 can still parse the CoAP header and identify the new option, it has no predefined FID to use in the Rule, as shown in {{fig-new-fid}}:
 
 ~~~~ aasvg
 +---------------+-----+---+----+-------+-------+---------+
@@ -121,15 +151,49 @@ Now suppose that A uses a recently defined option or a private option. In S1, no
 ~~~~
 {: #fig-new-fid title="New entry added by management" artwork-align="center"}
 
-In fact, the way FIDs are allocated using a YANG Data Model cannot be used when some fields are defined after the SCHC implementation. The Parser will identify this new option since the structure in the header remains the same. The compression and decompression do not need to be modified, since it is based in generic procedure. The problem is related to FID allocation, internally to the SCHC implementation and to the Data Model to exchange Rules with other implementations.
 
-The protocol option space and the SCHC FID space are not correlated, this leads to an interoperability issue.
+##Interoperability Consequences
+
+This disconnect between protocol option identifiers and SCHC FIDs creates several interoperability issues:
+
+* Limited Protocol Evolution Support: New protocol options cannot be efficiently compressed without updates to the SCHC implementation.
+
+* Incompatible Rule Exchanges: Different SCHC implementations may assign different FIDs to the same new option, making Rule exchange between them problematic.
+
+* Implementation Complexity: SCHC implementations must maintain complex mappings between protocol options and FIDs, and these mappings may differ between implementations.
+
+* Deployment Barriers: Deploying SCHC in environments with evolving protocols becomes difficult and requires frequent updates to SCHC implementations.
+
+The fundamental issue is that the protocol option space and the SCHC FID space are disconnected, with no standardized or dynamic mapping between them. This disconnect seriously limits SCHC's applicability in dynamic environments and its ability to adapt to protocol evolution.
+
+In the following sections, we will explore two approaches to address this challenge. The first approach, termed 'syntactic,' aims to closely align with CoAP's native representation of options by defining three distinct fields: option delta type, option length, and option value. 
+The second approach, called 'semantic,' abstracts away from the byte-level representation and introduces a generic option framework that eliminates the need for mapping between option values and Field IDs. This semantic approach focuses on the logical meaning rather than the protocol-specific encoding.
 
 # Syntactic compression
 
-SCHC compression is semantic, field ID are abstracted in a generic representation composed of a field ID, a position, and a direction. For instance, when a CoAP option is sent on the wire, the option is coded as a delta option, a length value and the value. All these information is found in the abstract description. The delta option allows to find the option number which is turned into a SCHC FID, the length is taken from the option as the associated value.  As stated before, the mapping between the option number and the FID must be known and failed if the option is new to the SCHC implementation.
+## Overview of the Approach
 
-To avoid the mapping between a protocol ID and a SCHC ID {{I-D.lampin-lpwan-schc-considerations}} proposed,  to stay closer to the protocol syntax and define Rules that will take into account the option format. So, an option will be described in 3 fields (cf. {{fig-synt-not-sent}}):
+SCHC compression typically uses a semantic approach where protocol fields are abstracted into generic representations with Field IDs (FIDs) that don't directly correlate to the protocol's encoding format. While effective for static fields, this creates challenges for dynamic protocol options as previously discussed.
+
+Syntactic compression, as proposed in {{I-D.lampin-lpwan-schc-considerations}}, takes a fundamentally different approach by aligning compression more closely with the protocol's wire format. Instead of abstracting away from the protocol's representation, syntactic compression preserves the original structure of protocol headers, including how options are encoded.
+
+## CoAP Option Encoding Background
+To understand syntactic compression for CoAP options, it's important to recall how CoAP encodes options in messages:
+
+* Each CoAP option on the wire consists of three components:
+
+  * Option Delta: The difference between this option number and the previous option
+
+  * Option Length: The length of the option value in bytes
+
+  * Option Value: The actual option content
+
+
+* This encoding allows CoAP to efficiently represent options while maintaining extensibility.
+
+## Syntactic Representation of Options
+
+In the syntactic approach, instead of representing a CoAP option as a single abstract Field ID, each option is decomposed into its three constituent parts as shown in {{fig-synt-not-sent}}:
 
 ~~~~ aasvg
 +------------+-----+---+----+-------+-------+---------+
@@ -142,9 +206,23 @@ To avoid the mapping between a protocol ID and a SCHC ID {{I-D.lampin-lpwan-schc
 +------------+-----+---+----+-------+-------+---------+
 ~~~~
 {: #fig-synt-not-sent title="representation of an elided option with syntactic representation" artwork-align="center"}
-Where option could be either the absolute CoAP option number or the delta as it appears in the CoAP message. This way, the option remains in the CoAP numbering space and every option is processed the same way and upcoming options will also be compressed.
 
-Nevertheless, this encoding multiply by three the number of entries to describe an option, leading to a larger representation of the Rule. If this description works well when the field is elided with not-sent CDA, the compression is more complex when the option must be sent. For instance (cf. {{fig-sem-value-sent}}):
+In this representation:
+
+* 'CoAP.option' can represent either the absolute CoAP option number or the delta value as encoded in the CoAP message. While this choice affects how the parser is implemented, it has minimal impact on the overall performance of the compression approach being examined in this document. 
+
+* "CoAP.length" represents the option length field
+
+* "CoAP.value" contains the actual option value
+
+This approach means that option identifiers remain in the CoAP numbering space rather than being converted to SCHC FIDs. This critical difference allows any option—existing, newly defined, or private—to be processed without requiring updates to the SCHC implementation's FID mapping.
+
+
+The syntactic approach offers several advantages. It provides robust support for protocol evolution, allowing new or private options to be compressed without requiring changes to SCHC implementations. It enhances interoperability since option identifiers remain in the protocol's numbering space, enabling different SCHC implementations to exchange rules for any option. Additionally, it simplifies implementation by eliminating the need for complex mappings between protocol option identifiers and SCHC FIDs.
+
+However, this approach also comes with notable disadvantages. It increases the number of entries required to describe each option by a factor of three, resulting in larger Rule representations. Furthermore, the syntactic approach may yield less efficient compression in certain scenarios, particularly when options must be sent rather than elided.
+
+For instance, in a semantic approach, only the value and potentionnly the length is sent as residue (cf. {{fig-sem-value-sent}}):
 
 ~~~~ aasvg
 +---------------+---+---+--+-----+------+----------+
@@ -155,30 +233,71 @@ Nevertheless, this encoding multiply by three the number of entries to describe 
 ~~~~
 {: #fig-sem-value-sent title="representation of an option sent with semantic representation" artwork-align="center"}
 
-will be transformed into (cf. {{fig-snyt-value-sent}}):
+The equivalent syntactic representation requires three entries, as shown in (cf. {{fig-snyt-value-sent}}):
 
 ~~~~ aasvg
 +------------+---+--+--+--+------+----------+
 |    FID     |FL |FP|DI|TV|  MO  |   CDA    |
 +============+===+==+==+==+======+==========+
-|CoAP.option |16 |1 |up|  |ignore|value-sent|
+|CoAP.option |16 |1 |up|  |equal |not-sent  |
 |CoAP.length |16 |1 |up|  |ignore|value-sent|
 |CoAP.value  |var|1 |up|  |ignore|value-sent|
 +------------+---+--+--+--+------+----------+
 ~~~~
 {: #fig-snyt-value-sent title="representation of an option sent with syntactic representation" artwork-align="center"}
 
-In that case, the option or the length coded from 4 bits to 16 bits may be viewed as a 16-bit field that has to be sent as residue. The option length has to be sent twice, the first time in the CoAP.length field and a second time in the residue of the value. To avoid this, one option could have been to define a new length function, linking the length of the value to the content of the CoAP.length field. Without this optimization, if we want to keep it generic, an option of 4 bytes, will be coded 2+2+0.5+3 = 7.5 bytes.
+In this case, both the option number and length (which may be encoded in just 4 bits in the CoAP message) are treated as 16-bit fields that must be sent as residue. Additionally, the option length is effectively sent twice: once in the CoAP.length field and again as part of the value's residue.
 
-Having generic compression schemes is interesting and this work needs to continue to be investigated, but going too close to the byte representation may lead to suboptimal compression and Rule representation.
+For example, a 4-byte option value would be encoded as follows in the syntactic approach:
 
-# Options ID
+* 0 bytes for the option number
+* 2 bytes for the length field
+* 0.5 bytes for the header of the value (in SCHC compressed format)
+* 4 bytes for the actual value
 
-The idea of keeping   protocol identifiers in SCHC Rules simplify the interoperability and the evolution of SCHC compression, when the protocol evolves. One solution is to use these identifiers in the compression Rules. Since several protocols may reuse the same values. For instance, option 8 refers to Location-Path in CoAP and Timestamp in TCP. The value must be associated with the protocol to avoid ambiguities.
+This totals 6.5 bytes, compared to a more efficient representation in the semantic approach with 4.5 bytes.
 
-One solution could be to define in SCHC an identity referring to the protocol, followed by the value used by this protocol.
+One potential optimization would be to define a new length function that links the length of the value to the content of the CoAP.length field, avoiding the duplicate transmission of length information. However, this would add complexity to the compression mechanism.
 
-The tree (cf. {{fig-yang-rule-entry}}) shows how compression rules are defined in the YANG Data Model {{RFC9363}}:
+Extending the Data Model to support the syntactic approach essentially involves creating three new Field Identifiers (FIDs) that correspond to the components of the option structure.
+
+## Conclusion
+
+While syntactic compression offers a more generic approach that can handle protocol evolution without requiring implementation updates, it may lead to suboptimal compression efficiency and larger Rule representations. The tradeoff between flexibility and efficiency must be carefully considered based on the specific deployment scenario and requirements.
+
+The syntactic approach demonstrates that staying too close to the byte-level representation of a protocol can compromise compression efficiency. This insight leads us to consider a hybrid approach that preserves the protocol's option identifiers while maintaining the efficiency of semantic compression, as discussed in the next section.
+
+# Semantic compression 
+
+## The Proposed Approach
+
+Having examined the syntactic approach, which closely follows the byte-level representation of CoAP options, we now explore an alternative solution that maintains the efficiency of semantic compression while addressing the interoperability challenges. This approach preserves protocol option identifiers directly within SCHC Rules, eliminating the need for mapping between protocol-specific option numbers and SCHC Field Identifiers (FIDs).
+
+The core idea is to incorporate the original protocol identifiers into the compression Rules. Since multiple protocols may reuse the same numeric values for different purposes (for example, option 8 refers to Location-Path in CoAP but Timestamp in TCP), this approach associates each option value with its protocol namespace to avoid ambiguity.
+
+## Technical Solution
+
+The solution involves defining within SCHC an identity that references the protocol (creating a "protocol space"), followed by the specific option value used by that protocol. This preserves the protocol's native numbering scheme while allowing SCHC to differentiate between options from different protocols that might share the same numeric value.
+
+Using this approach, a Rule that includes various CoAP options would directly reference the CoAP option numbers rather than abstract FIDs. For instance, the representation of a URI with two path elements (option 11) and two query elements (option 15) might look like (cf. {{fig-proto-id}}):
+
+~~~~ aasvg
++---------------+---+--+--+-----+------+----------+
+|      FID      |FL |FP|DI| TV  |  MO  |   CDA    |
++===============+===+==+==+=====+======+==========+
+|CoAP.option(11)|len|1 |up|value|equal |not-sent  |
+|CoAP.option(11)|len|2 |up|     |ignore|value-sent|
+|CoAP.option(15)|len|1 |up|value|equal |not-sent  |
+|CoAP.option(15)|len|2 |up|value|equal |not-sent  |
++---------------+---+--+--+-----+------+----------+
+~~~~
+{: #fig-proto-id title="Rule including options ID." artwork-align="center"}
+
+In this example, option numbers 11 (URI-Path) and 15 (URI-Query) are directly specified, along with their position and direction, providing clear identification of which CoAP options are being compressed without requiring predefined FIDs for each option type.
+
+#Data Model Implementation Challenges
+
+While this approach offers clear advantages for interoperability and protocol evolution, implementing it within the current YANG Data Model defined in {{RFC9363}} presents challenges. The current model defines Rule entries with a key composed of field-id, field-position, and direction-indicator, as shown in {{fig-yang-rule-entry}}:
 
 ~~~~
            +--:(compression) {compression}?
@@ -193,25 +312,14 @@ The tree (cf. {{fig-yang-rule-entry}}) shows how compression rules are defined i
 ~~~~
 {: #fig-yang-rule-entry title="Rule entry defined by [RFC 9363]." artwork-align="center"}
 
-An entry is defined by a key composed of the field-id, a field-position and the direction indicator. This branch of the tree cannot be augmented with a new leaf containing the option value and the field-id set to an identifier specifying the CoAP options.
+The example shown in {{fig-proto-id}} is not valid under this model because the combination of FID, position, and direction is repeated multiple times, which violates the key constraints. We cannot simply include the option value as part of the key in the existing structure.
 
-For instance, the representation of an URI with two path elements (11) and two query elements (15):
+Furthermore, it's not possible to augment the model defined in RFC 9363 to add a new leaf to the key of the list. Adding option identifiers to all entries would also be inefficient, as many fields (such as IPv6 or UDP fields) don't require this additional context.
 
-~~~~ aasvg
-+---------------+---+--+--+-----+------+----------+
-|      FID      |FL |FP|DI| TV  |  MO  |   CDA    |
-+===============+===+==+==+=====+======+==========+
-|CoAP.option(11)|len|1 |up|value|equal |not-sent  |
-|CoAP.option(11)|len|2 |up|     |ignore|value-sent|
-|CoAP.option(15)|len|1 |up|value|equal |not-sent  |
-|CoAP.option(15)|len|2 |up|value|equal |not-sent  |
-+---------------+---+--+--+-----+------+----------+
-~~~~
-{: #fig-proto-id title="Rule including options ID." artwork-align="center"}
 
-Is not valid regarding the Data Model, since the key FID, position, direction is repeated four times on the example. The option itself must be included as a key.
+## Proposed YANG Data Model Extension
 
-It is not possible to augment the model defined in RFC 9363 and add this leaf to the key of the list. Having this element on all entries is not also optimal. It looks better to augment the current compression data model with another list containing entries describing options.
+A more effective solution is to augment the current compression data model with a new list specifically designed for entries describing protocol options:
 
 ~~~~
   +--rw schc-opt:entry-option-space* \
@@ -227,17 +335,60 @@ It is not possible to augment the model defined in RFC 9363 and add this leaf to
 ~~~~
 {: #fig-augmentation-id title="Augmentation of SCHC Data Model to include options ID." artwork-align="center"}
 
-The space-id defines the protocol space, this value may be provided by the SCHC WG and option-value is taken from the protocol space maintained by IANA.
+In this augmented model:
 
-This will have an impact on the serialization of residues. Both ends must have the entry in the same order. So Field from “entry” list MUST be serialized before the ones defined in “entry-option-space”.
+* The space-id defines the protocol namespace (e.g., CoAP, TCP), with values provided by the SCHC Working Group
 
-# Impact on current standards
+* The option-value contains the actual option number as defined in the protocol's IANA registry
 
-{{RFC9363}} and {{I-D.ietf-schc-8824-update}} define some FID for CoAP options. This leads to have similar Rule but they are incompatible. CoAP option identifier should be deprecated.
+* The remaining elements (field-length, field-position, etc.) function as they do in the standard entry structure, but they will be diffentely identified.
+
+This approach maintains the semantic efficiency of SCHC while eliminating the need for protocol-to-FID mappings.
+
+## Implications for Residue Serialization
+
+This design has implications for how residues are serialized. To ensure consistent interpretation, both SCHC endpoints must process entries in the same order. Therefore:
+
+* Fields from the standard "entry" list MUST be serialized before those defined in the new "entry-option-space" list
+
+*This constraint should be documented in {{I-D.ietf-lpwan-architecture}} to ensure interoperability
+
+This approach preserves the guideline from {{RFC8724}} that Field Descriptors (entries) should be listed in the order they appear in the packet header.
 
 
-This leads also to a constraint that has not been included for the Data Model. The order of the Field Descriptors is not specified as YANG do not impose a position in a list. This has no impact on the compression process but is important for the serialization. The {{I-D.ietf-lpwan-architecture}} should document the fact that entry ordrer should not be changed when transmitted from one end-point to the other. So, this allow to keep the indication of {{RFC8724}} to keep Field Descriptors (aka entries) listed in the order they appear in the packet header.
+## Advantages of this Approach
 
+The proposed approach offers several significant benefits compared to both the current SCHC model and the syntactic approach:
+
+* It maintains the efficiency of semantic compression while eliminating the mapping problem between protocol options and SCHC FIDs
+
+* It enables straightforward handling of newly defined or private options without requiring updates to SCHC implementations
+
+* It allows for cleaner Rule exchange between SCHC endpoints, improving interoperability in heterogeneous environments
+
+This approach represents a balanced solution that addresses the interoperability challenges while preserving the compression efficiency that makes SCHC valuable in constrained environments.
+
+## Impact on Current Standards
+
+### Compatibility with Existing Standards
+
+The proposed extension to preserve protocol option identifiers in SCHC Rules has important implications for existing standards. Both {{RFC9363}} and {{I-D.ietf-schc-8824-update}} define specific Field Identifiers (FIDs) for CoAP options. These predefined FIDs and the proposed approach represent two different methods for identifying the same protocol elements, which creates potential compatibility issues.
+
+### Deprecation of Predefined CoAP Option FIDs
+
+To maintain consistency and avoid confusion between the two approaches, the predefined CoAP option identifiers in the current standards should be deprecated in favor of the more flexible option identifier approach proposed in this document. This deprecation should be handled carefully to ensure backward compatibility with existing implementations while enabling a clear migration path to the new approach.
+
+### Entry Order Requirements
+
+The proposed approach also highlights a constraint that was not explicitly included in the current Data Model. YANG does not impose a specific position for elements in a list, which has no impact on the compression process itself. However, the order becomes critical for the serialization of residues.
+When transmitting Rules from one endpoint to another, the order of Field Descriptors must be preserved to ensure consistent handling of residues. This requirement should be explicitly documented in {{I-D.ietf-lpwan-architecture}} to clarify that:
+
+* The order of entries should not be changed when transmitted between endpoints
+This ordering preserves the guidance in {{RFC8724}} that Field Descriptors (entries) should be listed in the order they appear in the packet header
+
+* This ordering requirement becomes particularly important with the introduction of the new "entry-option-space" list, as both types of entries (standard and option-space) must be processed in a consistent sequence across all implementations.
+
+The statement "ordered-by user;" MUST be included in a revision of {{RFC9363}}.
 
 
 
@@ -454,7 +605,13 @@ module ietf-schc-opt {
 
 # Examples
 
-The following message is a CoAP message with several options, options are defined in {{RFC9363}}, except SCP82-Param (2055):
+This appendix provides practical examples that compare different approaches to representing protocol options in SCHC. The purpose of these examples is to demonstrate the operational implications of each approach in terms of Rule size, compression efficiency, and query performance.
+
+## Test Scenario and Methodology
+
+To provide a consistent basis for comparison, we use a common CoAP message containing various standard options along with one non-standard option (SCP82-Param). This example was chosen to illustrate how each approach handles both well-known and recently defined options.
+
+The following CoAP message serves as our reference example:
 
 ~~~~
 0000  40 01 00 01 BD 01 61 63 63 65 6C 65 72 6F 6D 65  @.....accelerome
@@ -473,18 +630,35 @@ CON  0x0001 GET
 ~~~~
 {: #fig-coap-example title="Example of a CoAP packet with options." artwork-align="center"}
 
-In the following examples, the compression rule will send the residues for the Uri-Path, Uri-Query and SCP82-Param, 
-the rest is elided.
+For each approach, we will evaluate three key metrics:
 
-The goal of the comparison is to see:
+* Rule Size: The size of the CBOR-serialized compression rule in bytes
+* Query Size: The size of the CORECONF query payload needed to access specific values in the rule
+* Compressed Packet Size: The size of the resulting SCHC-compressed packet in bytes
 
-* the size of the serialization of a rule matching the previous packet
-* the size of the CORECONF query payload to access to the Target Value of the Accept option in the rule.
-* the size of the compressed message
+In all examples, our compression rule will send residues for the Uri-Path, Uri-Query, and SCP82-Param options, while eliding the rest. This allows us to compare how different approaches handle both sent and not-sent options.
 
-## Semantic compression
+## Approaches Compared
 
-In RFC8724 informal notation, a rule matching this packet could be:
+We evaluate the following approaches to option representation:
+
+* Semantic Compression with RFC 9363: The current approach using predefined Field IDs for known options
+* Universal Options: Our proposed approach preserving protocol option identifiers
+Merged Data Model: A combined approach that integrates both methods into a single data model
+* Ordered SID Allocation: An optimized version with carefully arranged SID values
+* Syntactic Compression: The approach using delta-type, length, and value fields
+
+Each approach represents a different balance between compatibility, flexibility, and efficiency. The examples will demonstrate these trade-offs quantitatively.
+Let's examine each approach in detail:
+
+
+# Semantic compression 
+
+Semantic compression is the approach currently defined in {{RFC8724}}, where each protocol field is assigned an abstract Field Identifier (FID) that represents its semantic meaning rather than its wire format. This section examines how this approach handles our example CoAP message.
+
+## Rule Definition
+
+Using RFC 8724's informal notation, a rule matching our sample packet would be structured as follows:
 
 ~~~~~
 +===================================================================+
@@ -529,15 +703,15 @@ In RFC8724 informal notation, a rule matching this packet could be:
 ~~~~~
 {: #fig-rule-test title="Target rule." artwork-align="center"}
 
-### with RFC 9363 
+## Implementation with RFC 9363
 
-The rule 1/8 cannot be serialized in CBOR with {{RFC9363}} Data Model, since
-there is indentyref defined for CoAP SCP82 Param option. This could be solved 
-by defining a new YANG DM introducing identityref for the options defined for 
-{{GPC-SPE-207}} and the associated SID range. We suppose that {{RFC9363}} SIDs
-starts at 5000 and {{GPC-SPE-207}} at 10000. 
+When implementing this rule using the RFC 9363 Data Model, we encounter a fundamental limitation: there is no identity reference (identityref) defined for the CoAP SCP82-Param option in the current standard. This illustrates the core problem addressed in this document – the inability to represent new or protocol-specific options without updating the SCHC implementation.
+For the purpose of this comparison, we'll assume that a theoretical extension to RFC 9363 has been created that defines identityrefs for the options in {{GPC-SPE-207}}, with corresponding SID ranges: RFC 9363 SIDs starting at 5000 and {{GPC-SPE-207}} SIDs starting at 10000.
 
-The CBOR message is 357 bytes long as shown {{fig-cbor-serial}}.
+### CBOR Serialization
+
+
+With these assumptions, the rule can be serialized in CBOR format. The resulting message is 357 bytes long {{fig-cbor-serial}}.
 
 ~~~~~
 b'a11913e7a10181a4048ca7061913bf070208010519139b091913db011913970d81a20100024101a7
@@ -552,7 +726,7 @@ d82d1913d508010519139b091913dc0119139818220818210818231913e0'
 ~~~~~
 {: #fig-cbor-serial title="CBOR serialisation." artwork-align="center"}
 
-The diagnostic representation of the CBOR message is the following:
+The diagnostic representation provides insight into the structure of this serialized rule:
 
 ~~~~
 Deltas in entry part:
@@ -588,10 +762,11 @@ Deltas in the rule part:
 ~~~
 {: #fig-cbor-diag title="CBOR diagnostic notation." artwork-align="center"}
 
-Note that the coding of rule-id-value, rule-id-lenght and rule-nature is not optimal, 
-since the delta is higher than 23, and correspond to 2 bytes in the CBOR encoding.
+Note that the encoding of rule-id-value, rule-id-length, and rule-nature is not optimal because the delta values are higher than 23, requiring 2 bytes each in the CBOR encoding.
 
-CORECONF request to access to the target value of the Accept option is given in {{fig-query}}. The size of the CoAP payload is 14 bytes.
+### CORECONF Query Example
+
+To access the target value of the Accept option in this rule, a CORECONF query would be structured as follows. The size of the CoAP payload for this query is 14 bytes:
 
 ~~~
 REQ: FETCH </c>
@@ -606,19 +781,33 @@ REQ: FETCH </c>
 ~~~
 {: #fig-query title="CORECONF query to Accept TV." artwork-align="center"}
 
-The SCHC packet {{fig-residue}} has a size of 389 bits or 49 bytes with the alignment.
+### Compressed Packet
+
+When applied to our sample CoAP message, the semantic compression approach produces a SCHC packet of 389 bits (49 bytes with byte alignment):
 
 ~~~
 0800f30b1b1b2b632b937b6b2ba32b939bb6b0bc34b6bab6d3230ba329eba37b230bcd3ab734ba1eb697b9af191aa262b0/389
 ~~~
 {: #fig-residue title="SCHC compressed packet." artwork-align="center"}
 
+### Analysis
 
-### Universal Options (Laurent)
+The semantic compression approach demonstrates both significant strengths and notable limitations. On the positive side, it achieves an efficient compressed packet size of only 49 bytes, making it suitable for constrained networks where bandwidth is at a premium. The query size is also relatively small at 14 bytes, which enables efficient rule management operations. Additionally, the semantic representation of fields provides clarity by abstracting protocol details into meaningful identifiers.
 
-We assign SIDs starting from 7000 to the YANG DM augmentation defined in this document. All the CoAP options are defined by a space ID indicating CoAP and the option number used in CoAP. Option CSP82-Param is processed like any other options. 
+However, this approach faces important limitations that impact its flexibility. Most critically, it cannot handle new options without predefined Field Identifiers, which creates a dependency on standards updates. When new protocol options emerge, the approach requires formal extension of the standard to define appropriate identifiers, creating potential delays and compatibility issues. While the rule serialization size is moderate at 357 bytes, this still represents significant overhead in highly constrained environments. These limitations illustrate why semantic compression works well in static, predictable environments but presents challenges for protocol evolution and interoperability in more dynamic contexts where protocols frequently evolve.
 
-The CBOR message is 481 bytes long as shown {{fig-cbor-serial}}.
+## Universal Options
+
+The Universal Options approach preserves protocol option identifiers directly within SCHC Rules, eliminating the need for predefined Field Identifiers for each option type. This section examines how this approach handles our example CoAP message.
+
+### Implementation Approach
+
+In this approach, we assign SIDs starting from 7000 to the YANG Data Model augmentation defined in this document. All CoAP options are represented by a combination of a space ID (indicating the protocol namespace, in this case CoAP) and the option number as used in the CoAP protocol. This allows the SCP82-Param option to be processed like any other option, regardless of whether it was defined when the SCHC implementation was created.
+
+### CBOR Serialization
+
+The CBOR serialization of the rule using the Universal Options approach is 481 bytes long:
+
 
 ~~~
 b'a11913e7a10181a4048ca7061913bf070208010519139b091913db011913970d81a20100024101a7
@@ -674,11 +863,11 @@ Deltas in the rule part:
 ~~~
 {: ##fig-cbor-diag2  title="CBOR serialisation." artwork-align="center"}
 
-It can be noted that the CoAP options part, delta are very large and takes 3 bytes for
-encode then in CBOR. We uses another range of SIDs for the augmentation, based on the
-standard allocation procedure, where each YANG DM has its own range. 
+It's important to note that in the CoAP options part, the delta values are very large and require 3 bytes each for CBOR encoding. This is because we've used a separate range of SIDs for the augmentation, following the standard allocation procedure where each YANG Data Model has its own SID range.
 
-CORECONF request to access to the target value of the Accept option is given in {{fig-query}}. The size of the CoAP payload is 15 bytes.
+### CORECONF Query Example
+
+A CORECONF query to access the target value of the Accept option in this approach would be structured as follows. The size of the CoAP payload is 15 bytes:
 
 ~~~
 REQ: FETCH </c>
@@ -694,13 +883,34 @@ REQ: FETCH </c>
 ~~~
 {: #fig-query2 title="CORECONF query to Accept TV." artwork-align="center"}
 
-## Merged
+### Compressed Packet
 
-Instead of having two Data Models, RFC9363 and Universal Options defined in this document are merged into
-single Data Model, called 9363bis. The SID allocation process remains inchanged and SID are allocated automatically
-using the numbering based on alphabetical order.
+When applied to our sample CoAP message, the Universal Options approach produces a SCHC packet with the same size as the semantic approach: 49 bytes with byte alignment.
 
-The CBOR serialization leads to 400 Bytes of data.
+### Analysis
+
+The Universal Options approach demonstrates several important characteristics when compared to the semantic approach.
+
+The primary advantage of this approach is its flexibility and future-proofing. By preserving the protocol's native option identifiers, it can handle any option—including newly defined or private options—without requiring updates to the SCHC implementation. This is particularly evident in how it handles the SCP82-Param option (2055) without requiring predefined Field Identifiers.
+The compressed packet size remains efficient at 49 bytes, identical to the semantic approach, demonstrating that flexibility doesn't come at the cost of compression efficiency at the packet level.
+
+However, there are trade-offs. The CBOR serialization of the rule is significantly larger at 481 bytes compared to 357 bytes for the semantic approach. This increased size is primarily due to the additional information needed to represent both protocol space identifiers and option values, along with less efficient delta encoding due to SID allocation in separate ranges.
+The query size is also slightly larger (15 bytes vs. 14 bytes), though this difference is minimal.
+
+Overall, the Universal Options approach provides significantly improved flexibility and interoperability at the cost of larger rule serialization size. This trade-off may be acceptable in many applications, particularly where protocol evolution and interoperability are more critical than rule storage efficiency.
+
+## Merged Data Model Approach
+The Merged approach combines elements from both the semantic compression and Universal Options approaches into a single, unified YANG Data Model. This section examines how this integrated approach handles our example CoAP message.
+
+### Implementation Approach
+
+Instead of maintaining two separate Data Models (RFC 9363 and Universal Options), this approach merges them into a single model, which we'll refer to as "9363bis." The SID allocation process remains unchanged, with SIDs allocated automatically based on alphabetical ordering of nodes in the YANG model.
+The key advantage of this approach is that it provides a unified framework that can represent both predefined fields using semantic compression and protocol-specific options using the Universal Options approach.
+
+### CBOR Serialization
+
+The CBOR serialization of the rule using the Merged approach is 400 bytes in size:
+
 ~~~
 b'a11913e9a10181a4048ca7171913bf1818021819011619139b181a1913db12191397181e81a20100
 024101a7171913be1818021819011619139a181a1913db12191397181e81a20100024100a7171913bc
@@ -715,7 +925,8 @@ e60d19010207d82d1913d508010619139b091913db021913970f81a20100024102a70e1913e60d19
 ~~~
 {: #fig-cbor-serial3 title="CBOR serialisation." artwork-align="center"}
 
-They can be represented in the diagnostic notation 
+The diagnostic representation reveals the structure of this serialized rule:
+
 ~~~
 Deltas in entry part:
 - 23: field-id                     -14: space-id  
@@ -752,19 +963,34 @@ Deltas in the rule part:
 ~~~
 {: #fig-cbor-diag3  title="CBOR serialisation." artwork-align="center"}
 
-I can be noted that some delta values are higher than 23, leading to a 2 bytes encoding in
-CBOR.
+It can be observed that some delta values are higher than 23, requiring 2 bytes for their encoding in CBOR. This is a result of the automatic SID allocation based on alphabetical ordering, which doesn't optimize for efficient deltas.
 
-Query and compressed packet are not represented, since the result are the same. The ID in the
-query may differs since the SID allocation may be slightly different, but the size is unchanged.
+### CORECONF Query and Compressed Packet
 
-## Ordered 
+The CORECONF query and compressed packet sizes remain consistent with previous approaches. The query size is 15 bytes (similar to the Universal Options approach), and the compressed packet size remains at 49 bytes.
 
-This time the SID file is manually edited to optimize the delta values. The Data Model is
-exactly the same as in the previous example.
+### Analysis
 
-The CBOR serialization is 376 Byte long, 16 bytes longuer than the RFC 9363 with
-specific SIDs for CoAP option.
+The Merged Data Model approach offers an interesting middle ground between the semantic and Universal Options approaches. By combining both approaches in a single model, it provides the benefits of compatibility with existing semantic compression while adding the flexibility to handle new or protocol-specific options.
+
+The CBOR serialization size (400 bytes) falls between the semantic approach (357 bytes) and the Universal Options approach (481 bytes), reflecting its hybrid nature. This represents a reasonable compromise that balances compatibility, flexibility, and efficiency.
+
+A key advantage of this approach is its unified framework, which eliminates the need to choose between different compression approaches. Implementations can leverage semantic compression for well-known fields while still maintaining the ability to handle any new protocol options through the Universal Options mechanism.
+
+However, the automatic SID allocation based on alphabetical ordering leads to some inefficiency in delta encoding. As shown in the diagnostic representation, some delta values require 2 bytes for encoding, which increases the serialization size. This suggests that further optimization of SID allocation could improve efficiency, which is explored in the next approach.
+
+Overall, the Merged approach offers a pragmatic solution that balances the strengths of both semantic and Universal Options approaches while mitigating some of their respective limitations. It provides a path forward that maintains backward compatibility while enabling future extensibility.
+
+## Ordered SID Allocation Approach
+The Ordered approach represents a further optimization of the Merged approach through strategic manual allocation of SIDs. While it uses the exact same YANG Data Model as the Merged approach, it differs in how SIDs are assigned to the nodes in the model.
+
+### Implementation Approach
+In standard YANG Data Models, SIDs are typically allocated automatically based on alphabetical ordering of nodes or through sequential assignment. This automatic allocation, while convenient, often produces suboptimal delta values when serializing CBOR-encoded rules.
+The Ordered approach intervenes in this process by manually editing the SID file to optimize delta values specifically for CBOR encoding efficiency. By carefully arranging SIDs to ensure that frequently used nodes have closely related values, this approach minimizes the number of bytes required to encode the deltas between adjacent SIDs in the CBOR representation.
+
+### CBOR Serialization
+
+The CBOR serialization of the rule using the Ordered approach is 376 bytes in size:
 
 ~~~
 b'a119139fa11781a4178ca71719142228022701161913fe2619143e121913fa2281a20100024101a7
@@ -780,8 +1006,7 @@ a70e1914490d0b07d82d1914380801061913fe0919143f021913fba70e1914490d0b07d82d191438
 ~~~
 {: #fig-cbor-serial4 title="CBOR serialisation." artwork-align="center"}
 
-The diagnostic notation, shows that with positive and negative deltas, they can
-be coded on a single byte.
+The diagnostic representation shows how this approach affects the delta values:
 
 ~~~
 Deltas in entry part:
@@ -819,7 +1044,11 @@ Deltas in the rule part:
 ~~~
 {: #fig-cbor-diag4  title="CBOR serialisation." artwork-align="center"}
 
-{{fig-sid-assignation}} shows how SIDs where manually allocated.  
+The key innovation in this approach is visible in the diagnostic representation: by carefully arranging SIDs, many of the delta values are now negative numbers with small absolute values. In CBOR, small integers (both positive and negative) can be encoded in a single byte, leading to significant space savings compared to the larger deltas in the Merged approach.
+
+### SID Allocation Strategy
+
+The SID allocation file was manually edited to optimize delta values, as shown in the excerpt below:
 
 ~~~
 5023;data;/ietf-schc:schc
@@ -885,8 +1114,27 @@ Deltas in the rule part:
 ~~~
 {: #fig-sid-assignation  title="CBOR serialisation." artwork-align="center"}
 
+The allocation strategy focuses on several key principles:
 
-## Syntatic compression (Quentin)
+* Grouping related nodes with consecutive SIDs to minimize delta values
+* Positioning frequently used nodes strategically to ensure small deltas
+* Using both positive and negative deltas to maximize single-byte encoding opportunities
+* Arranging rule-related fields to minimize the encoding size of rule metadata
+
+### CORECONF Query and Compressed Packet
+As with previous approaches, the CORECONF query size (15 bytes) and compressed packet size (49 bytes) remain consistent. The optimization affects only the rule serialization size, not the operational efficiency of queries or the compression ratio of actual packets.
+
+### Analysis
+
+The Ordered SID Allocation approach demonstrates the significant impact that strategic SID assignment can have on rule serialization efficiency. By reducing the CBOR serialization size from 400 bytes in the Merged approach to 376 bytes, it achieves a 6% reduction in size while maintaining identical functionality and compatibility.
+
+This approach is particularly noteworthy because it achieves this efficiency gain without any changes to the YANG Data Model itself—only the SID allocation is modified. This makes it a non-invasive optimization that can be applied to existing models without affecting their structure or semantics.
+
+The resulting serialization size (376 bytes) is only slightly larger than the original semantic approach (357 bytes), while maintaining all the flexibility benefits of the Universal Options approach. This represents an excellent compromise that nearly eliminates the size penalty of the more flexible approach.
+
+The Ordered approach demonstrates that thoughtful SID allocation can significantly improve encoding efficiency for CBOR-serialized SCHC Rules. This optimization technique could be valuable in constrained environments where rule transmission and storage efficiency are critical concerns.
+
+# Syntatic compression (Quentin)
 
 with options decomposed with delta Type, Length, Value.
 
@@ -900,11 +1148,11 @@ with Corentin proposal to flatten the rule entries
   +--------+---------+----------+--------+---------+------------+---------+
   |        | RFC9363 | Univ Opt | merged | ordered |  Syntactic | Revised |
   +--------+---------+==========+========+=========+------------+---------+
-  |CORECONF|    357  |     481  |    400 |     376 |            |         |       
+  |CORECONF|    357  |     481  |    400 |     376 |        704 |         |       
   +--------+---------+----------+--------+---------+------------+---------+
   |Query   |     14  |      15  |     15 |      15 |            |         |
   +--------+---------+----------+--------+---------+------------+---------+
-  |SCHC pkt|     49  |      49  |     49 |      49 |            |         |
+  |SCHC pkt|     49  |      49  |     49 |      49 |         52 |         |
   +--------+---------+----------+--------+---------+------------+---------+
 
 ~~~
