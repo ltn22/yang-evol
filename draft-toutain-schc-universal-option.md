@@ -1134,7 +1134,7 @@ The resulting serialization size (376 bytes) is only slightly larger than the or
 
 The Ordered approach demonstrates that thoughtful SID allocation can significantly improve encoding efficiency for CBOR-serialized SCHC Rules. This optimization technique could be valuable in constrained environments where rule transmission and storage efficiency are critical concerns.
 
-# Syntatic compression (Quentin)
+# Syntatic compression
 
 The syntactic approach processes all options uniformly by decomposing each CoAP option into its constituent components. Rather than treating an entire option as a single field, this approach treats the delta type, length, and value components that make up a CoAP option as separate fields. While the core compression algorithm remains unchanged, the parsing phase must be modified to accommodate this decomposed representation of the header. From a Data Model perspective, three new Field Identifiers (FIDs) need to be defined. The specific SID values assigned have minimal impact since they function purely as identifiers without CORECONF delta encoding considerations. 
 
