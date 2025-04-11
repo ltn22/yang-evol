@@ -1,0 +1,14 @@
+<reference anchor="RFC9363" target="https://www.rfc-editor.org/info/rfc9363">
+  <front>
+    <title>A YANG Data Model for Static Context Header Compression (SCHC)</title>
+    <author fullname="A. Minaburo" initials="A." surname="Minaburo"/>
+    <author fullname="L. Toutain" initials="L." surname="Toutain"/>
+    <date month="March" year="2023"/>
+    <abstract>
+      <t>This document describes a YANG data model for the Static Context Header Compression (SCHC) compression and fragmentation Rules.</t>
+      <t>This document formalizes the description of the Rules for better interoperability between SCHC instances either to exchange a set of Rules or to modify the parameters of some Rules.</t>
+    </abstract>
+  </front>
+  <seriesInfo name="RFC" value="9363"/>
+  <seriesInfo name="DOI" value="10.17487/RFC9363"/>
+</reference>

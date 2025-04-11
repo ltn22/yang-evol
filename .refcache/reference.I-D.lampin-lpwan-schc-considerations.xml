@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<reference anchor="I-D.lampin-lpwan-schc-considerations" target="https://datatracker.ietf.org/doc/html/draft-lampin-lpwan-schc-considerations-00">
+   <front>
+      <title>SCHC design and implementation considerations</title>
+      <author initials="Q." surname="Lampin" fullname="Quentin Lampin">
+         <organization>Orange</organization>
+      </author>
+      <date month="November" day="10" year="2022" />
+      <abstract>
+	 <t>   Taking the opportunity of a fresh implementation of SCHC by a
+   newcomer to SCHC to reflect on the design principles and the
+   implications on the implication of SCHC.
+
+   Topics addressed:
+
+   *  The parser, as described in SCHC specification.
+
+   *  A discussion on parsing and interpretation.
+
+   *  Practical implications of the specification of the parser of SCHC.
+
+   *  the challenge and opportunity of a generic parser implementation
+      able to handle any protocol stack and rules design to enable it.
+
+	 </t>
+      </abstract>
+   </front>
+   <seriesInfo name="Internet-Draft" value="draft-lampin-lpwan-schc-considerations-00" />
+   
+</reference>

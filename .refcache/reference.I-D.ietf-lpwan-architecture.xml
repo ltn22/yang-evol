@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<reference anchor="I-D.ietf-lpwan-architecture" target="https://datatracker.ietf.org/doc/html/draft-ietf-lpwan-architecture-02">
+   <front>
+      <title>LPWAN Static Context Header Compression (SCHC) Architecture</title>
+      <author initials="A." surname="Pelov" fullname="Alexander Pelov">
+         <organization>Acklio</organization>
+      </author>
+      <author initials="P." surname="Thubert" fullname="Pascal Thubert">
+         <organization>Cisco Systems</organization>
+      </author>
+      <author initials="A." surname="Minaburo" fullname="Ana Minaburo">
+         <organization>Acklio</organization>
+      </author>
+      <date month="June" day="30" year="2022" />
+      <abstract>
+	 <t>   This document defines the LPWAN SCHC architecture.
+
+	 </t>
+      </abstract>
+   </front>
+   <seriesInfo name="Internet-Draft" value="draft-ietf-lpwan-architecture-02" />
+   
+</reference>

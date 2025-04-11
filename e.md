@@ -1140,91 +1140,8 @@ The syntactic approach processes all options uniformly by decomposing each CoAP 
 
 ## Rule specification
 
-As shown in the transition from {{fig-rule-test}} to {{fig-rule-test2}}, the Field Position (FP) parameter plays a crucial role in maintaining the proper ordering of these option components.
+As shown in the transition from {{fig-rule-test}} to {{fig-rule-test}}, the Field Position (FP) parameter plays a crucial role in maintaining the proper ordering of these option components.
 
-~~~
-+===================================================================+
-|RuleID 9/8                                                         |
-+==========+===+==+==+======+===============+===============+=======+
-|  Field   | FL|FP|DI|  TV  |       MO      |      CDA      |  Sent |
-|          |   |  |  |      |               |               | [bits]|
-+==========+===+==+==+======+===============+===============+=======+
-|CoAP      |2  |1 |Bi|01    | equal         | not-sent      |       |
-|version   |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+=======+
-|CoAP Type |2  |1 |Dw|CON   | equal         | not-sent      |       |
-+----------+---+--+--+------+---------------+---------------+=======+
-|CoAP TKL  |4  |1 |Bi|0     | equal         | not-sent      |       |
-+----------+---+--+--+------+---------------+---------------+=======+
-|CoAP Code |8  |1 |DW|0.01  | equal         | not-sent      |       |
-+----------+---+--+--+------+---------------+---------------+=======+
-|CoAP MID  |16 |1 |Bi|0000  | MSB(7)        | LSB           |MID    |
-+----------+---+--+--+------+---------------+---------------+=======+
-|CoAP      |16 |1 |Dw|11    | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |8  |1 |Dw|      | ignore        | value-sent    | size  |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|1 |Dw|      | ignore        | value_sent    | size+ |
-|Value     |   |  |  |      |               |               | value |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |16 |2 |Dw|0     | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |4  |2 |Dw|      | ignore        | value-sent    | size  |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|2 |Dw|      | ignore        | value_sent    | size+ |
-|Value     |   |  |  |      |               |               | value |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |16 |3 |Dw|4     | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |4  |3 |Dw|      | ignore        | value-sent    | size  |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|3 |Dw|      | ignore        | value_sent    | size+ |
-|Value     |   |  |  |      |               |               | value |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |16 |4 |Dw|0     | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |4  |4 |Dw|      | ignore        | value-sent    | size  |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|4 |Dw|      | ignore        | value-sent    | size+ |
-|Value     |   |  |  |      |               |               | value |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |16 |5 |Dw| 2    | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |4  |5 |Dw| 1    | equal         | not-sent      |       |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|5 |Dw| 60   | equal         | not-sent      |       |
-|Value     |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |16 |6 |Dw| 241  | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |4  |6 |Dw| 1    | equal         | not-sent      |       |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|6 |Dw| 2    | equal         | not-sent      |       |
-|Value     |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |16 |7 |Dw|1797  | equal         | not-sent      |       |
-|DeltaT    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-|CoAP      |4  |7 |Dw|      | ignore        | value-sent    | size  |
-|Length    |   |  |  |      |               |               |       |
-+----------+---+--+--+------+---------------+---------------+-------+
-|CoAP      |var|7 |Dw|      | ignore        | value-sent    | size+ |
-|Value     |   |  |  |      |               |               | value |
-+----------+---+--+--+------+---------------+---------------+-------+ 
-~~~
-{: #fig-rule-test2 title="Target rule." artwork-align="center"}
 
 A notable limitation of this approach concerns the SCHC Field Length of the 'CoAP Length' fields, which restricts the rule's applicability. For example, the first Uri-path option requires 8 bits, instead of 4, for its Field Length because the value 'accelerometers' is 14 bytes long, necessitating the escape value 0xD to encode the length on an additional byte. Consequently, if shorter values need to be handled, separate rules would be required.
 
@@ -1238,11 +1155,11 @@ The compression residue with the rule ID is 409 bit-long or 52 byte-long with th
 ~~~
 {: #fig-residue2 title="SCHC compressed packet." artwork-align="center"}
 
-The increased size of the syntactic approach is primarily due to redundant transmission of option lengths. The length information must be sent twice: first to reconstruct the 'CoAP Length' field in the option header, and again to specify the size of the 'CoAP Value' residue. This duplication contributes significantly to the lower compression efficiency compared to other approaches.
+The difference in size with the syntactic approach is explained by the fact that option lenght are sent twice. Once to allow the reconstruction of the "CoAP Length" field and the other to indicate the lenght of the "CoAP Value" residue.
 
 ## CORECONF Query Example
 
-A CORECONF query to access the target value of the Accept with is in fith position. The size of the CoAP payload is also 14 bytes:
+A CORECONF query to access the target value of the Accept with is in fith position. The size of the CoAP payload is also 15 bytes:
 
 ~~~
 REQ: FETCH </c>
@@ -1257,55 +1174,8 @@ REQ: FETCH </c>
 ~~~
 {: #fig-query3 title="CORECONF query to Accept TV." artwork-align="center"}
 
-
-## CBOR Serialization
-
-The serialization uses the manually assigned sid to minize the representation. The result is 718 byte-long.
-
 ~~~
-Deltas in entry part:
-- 23: field-id                     -14: space-id  
-* -9: field-length                 -11: option-value 
-* -8: field-position               -7: field-length
-- 22: direction-indicator          -8: field-position
-* -7: matching-operator            -6: direction-indicator
-- 18: comp-decomp-action           -9: matching-operator  
-* -6: matching-operator-value      -15: target-value
-* -3: target-value                 
-
-Deltas in the rule part:
-* -11: rule-id-length
-* -10: rule-id-value
-* -12: rule-nature
-
-{5023: {23: [
-  {23: [{23: 5154, -9: 2, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, 
-  {23: 5153, -9: 2, -8: 1, 22: 5117, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, 
-  {23: 5151, -9: 4, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, 
-  {23: 5122, -9: 8, -8: 1, 22: 5117, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, 
-  {23: 5125, -9: 16, -8: 1, 22: 5117, -7: 5185, -6: [{1: 0, 2: h'07'}], 
-                                                    18: 5112, -3: [{1: 0, 2: h'00'}]}, 
-  {23: 8001, -9: 4, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'0B'}]}, 
-  {23: 8002, -9: 12, -8: 1, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8003, -9: 45(5176), -8: 1, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8001, -9: 4, -8: 2, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, 
-  {23: 8002, -9: 4, -8: 2, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8003, -9: 45(5176), -8: 2, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8001, -9: 4, -8: 3, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'04'}]}, 
-  {23: 8002, -9: 4, -8: 3, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8003, -9: 45(5176), -8: 3, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8001, -9: 4, -8: 4, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, 
-  {23: 8002, -9: 4, -8: 4, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8003, -9: 45(5176), -8: 4, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8001, -9: 4, -8: 5, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'02'}]}, 
-  {23: 8002, -9: 4, -8: 5, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, 
-  {23: 8003, -9: 8, -8: 5, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'3C'}]}, 
-  {23: 8001, -9: 4, -8: 6, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'F1'}]}, 
-  {23: 8002, -9: 4, -8: 6, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, 
-  {23: 8003, -9: 8, -8: 6, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'02'}]}, 
-  {23: 8001, -9: 8, -8: 7, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'0705'}]}, 
-  {23: 8002, -9: 4, -8: 7, 22: 5118, -7: 5183, 18: 5115}, 
-  {23: 8003, -9: 8, -8: 7, 22: 5118, -7: 5183, 18: 5115}], -11: 9, -10: 8, -12: 5187}]}}
+{5023: {23: [{23: [{23: 5154, -9: 2, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, {23: 5153, -9: 2, -8: 1, 22: 5117, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, {23: 5151, -9: 4, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, {23: 5122, -9: 8, -8: 1, 22: 5117, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, {23: 5125, -9: 16, -8: 1, 22: 5117, -7: 5185, -6: [{1: 0, 2: h'07'}], 18: 5112, -3: [{1: 0, 2: h'00'}]}, {23: null, -9: 4, -8: 1, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'0B'}]}, {23: 8002, -9: 12, -8: 1, 22: 5118, -7: 5183, 18: 5115}, {23: 8003, -9: 45(5176), -8: 1, 22: 5118, -7: 5183, 18: 5115}, {23: null, -9: 4, -8: 2, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, {23: 8002, -9: 4, -8: 2, 22: 5118, -7: 5183, 18: 5115}, {23: 8003, -9: 45(5176), -8: 2, 22: 5118, -7: 5183, 18: 5115}, {23: null, -9: 4, -8: 3, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'04'}]}, {23: 8002, -9: 4, -8: 3, 22: 5118, -7: 5183, 18: 5115}, {23: 8003, -9: 45(5176), -8: 3, 22: 5118, -7: 5183, 18: 5115}, {23: null, -9: 4, -8: 4, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'00'}]}, {23: 8002, -9: 4, -8: 4, 22: 5118, -7: 5183, 18: 5115}, {23: 8003, -9: 45(5176), -8: 4, 22: 5118, -7: 5183, 18: 5115}, {23: null, -9: 4, -8: 5, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'02'}]}, {23: 8002, -9: 4, -8: 5, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, {23: 8003, -9: 8, -8: 5, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'3C'}]}, {23: null, -9: 4, -8: 6, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'F1'}]}, {23: 8002, -9: 4, -8: 6, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'01'}]}, {23: 8003, -9: 8, -8: 6, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'02'}]}, {23: null, -9: 8, -8: 7, 22: 5118, -7: 5182, 18: 5114, -3: [{1: 0, 2: h'0705'}]}, {23: 8002, -9: 4, -8: 7, 22: 5118, -7: 5183, 18: 5115}, {23: 8003, -9: 8, -8: 7, 22: 5118, -7: 5183, 18: 5115}], -11: 9, -10: 8, -12: 5187}]}}
 ~~~
 
 <!--
@@ -1320,9 +1190,9 @@ with Corentin proposal to flatten the rule entries
   +--------+---------+----------+--------+---------+------------+---------+
   |        | RFC9363 | Univ Opt | merged | ordered |  Syntactic | Revised |
   +--------+---------+==========+========+=========+------------+---------+
-  |CORECONF|    357  |     481  |    400 |     376 |        718 |         |       
+  |CORECONF|    357  |     481  |    400 |     376 |        704 |         |       
   +--------+---------+----------+--------+---------+------------+---------+
-  |Query   |     14  |      15  |     15 |      15 |         14 |         |
+  |Query   |     14  |      15  |     15 |      15 |         15 |         |
   +--------+---------+----------+--------+---------+------------+---------+
   |SCHC pkt|     49  |      49  |     49 |      49 |         52 |         |
   +--------+---------+----------+--------+---------+------------+---------+
