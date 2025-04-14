@@ -182,18 +182,18 @@ To understand syntactic compression for CoAP options, it's important to recall h
 
 * Each CoAP option on the wire consists of three components:
 
-  * Option Delta: The difference between this option number and the previous option
+  * Option Delta: The difference between the option number of the present option and the option number of the previous option (if any).
 
-  * Option Length: The length of the option value in bytes
+  * Option Length: The length of the option value in bytes.
 
-  * Option Value: The actual option content
+  * Option Value: The actual option content.
 
 
 * This encoding allows CoAP to efficiently represent options while maintaining extensibility.
 
 ## Syntactic Representation of Options
 
-In the syntactic approach, instead of representing a CoAP option as a single abstract Field ID, each option is decomposed into its three constituent parts as shown in {{fig-synt-not-sent}}:
+In the syntactic approach, instead of representing a CoAP option as a single abstract Field ID, each option is decomposed into its three constituent parts as shown in {{fig-synt-not-sent}}, where "x" in the Field Length of CoAP.value entry indicates the expected value:
 
 ~~~~ aasvg
 +------------+-----+---+----+-------+-------+---------+
@@ -202,7 +202,7 @@ In the syntactic approach, instead of representing a CoAP option as a single abs
 |CoAP.option | 16  | 1 | up | opt or| equal | not-sent|
 |            |     |   |    | delta |       |         |
 |CoAP.length | 16  | 1 | up | value | equal | not-sent|
-|CoAP.value  | len | 1 | up | value | equal | not-sent|
+|CoAP.value  | x   | 1 | up | value | equal | not-sent|
 +------------+-----+---+----+-------+-------+---------+
 ~~~~
 {: #fig-synt-not-sent title="representation of an elided option with syntactic representation" artwork-align="center"}
@@ -211,9 +211,9 @@ In this representation:
 
 * 'CoAP.option' can represent either the absolute CoAP option number or the delta value as encoded in the CoAP message. While this choice affects how the parser is implemented, it has minimal impact on the overall performance of the compression approach being examined in this document. 
 
-* "CoAP.length" represents the option length field
+* "CoAP.length" represents the option length field.
 
-* "CoAP.value" contains the actual option value
+* "CoAP.value" contains the actual option value, noted "x".
 
 This approach means that option identifiers remain in the CoAP numbering space rather than being converted to SCHC FIDs. This critical difference allows any option—existing, newly defined, or private—to be processed without requiring updates to the SCHC implementation's FID mapping.
 
@@ -222,7 +222,7 @@ The syntactic approach offers several advantages. It provides robust support for
 
 However, this approach also comes with notable disadvantages. It increases the number of entries required to describe each option by a factor of three, resulting in larger Rule representations. Furthermore, the syntactic approach may yield less efficient compression in certain scenarios, particularly when options must be sent rather than elided.
 
-For instance, in a semantic approach, only the value and potentionnly the length is sent as residue (cf. {{fig-sem-value-sent}}):
+For instance, in a semantic approach, only the value and potentially the length is sent as residue (cf. {{fig-sem-value-sent}}):
 
 ~~~~ aasvg
 +---------------+---+---+--+-----+------+----------+
@@ -236,13 +236,13 @@ For instance, in a semantic approach, only the value and potentionnly the length
 The equivalent syntactic representation requires three entries, as shown in (cf. {{fig-snyt-value-sent}}):
 
 ~~~~ aasvg
-+------------+---+--+--+--+------+----------+
-|    FID     |FL |FP|DI|TV|  MO  |   CDA    |
-+============+===+==+==+==+======+==========+
-|CoAP.option |16 |1 |up|  |equal |not-sent  |
-|CoAP.length |16 |1 |up|  |ignore|value-sent|
-|CoAP.value  |var|1 |up|  |ignore|value-sent|
-+------------+---+--+--+--+------+----------+
++------------+---+--+--+-------------+------+----------+
+|    FID     |FL |FP|DI|     TV      |  MO  |   CDA    |
++============+===+==+==+=============+======+==========+
+|CoAP.option |16 |1 |up|opt or delta |equal |not-sent  |
+|CoAP.length |16 |1 |up|             |ignore|value-sent|
+|CoAP.value  |var|1 |up|             |ignore|value-sent|
++------------+---+--+--+-------------+------+----------+
 ~~~~
 {: #fig-snyt-value-sent title="representation of an option sent with syntactic representation" artwork-align="center"}
 
@@ -273,11 +273,11 @@ The syntactic approach demonstrates that staying too close to the byte-level rep
 
 Having examined the syntactic approach, which closely follows the byte-level representation of CoAP options, we now explore an alternative solution that maintains the efficiency of semantic compression while addressing the interoperability challenges. This approach preserves protocol option identifiers directly within SCHC Rules, eliminating the need for mapping between protocol-specific option numbers and SCHC Field Identifiers (FIDs).
 
-The core idea is to incorporate the original protocol identifiers into the compression Rules. Since multiple protocols may reuse the same numeric values for different purposes (for example, option 8 refers to Location-Path in CoAP but Timestamp in TCP), this approach associates each option value with its protocol namespace to avoid ambiguity.
+The core idea is to incorporate the original protocol identifiers into the compression Rules. Since multiple protocols may reuse the same option identifier for different purposes (for example, option 8 refers to Location-Path in CoAP but Timestamp in TCP), this approach associates each option value with its protocol namespace to avoid ambiguity.
 
 ## Technical Solution
 
-The solution involves defining within SCHC an identity that references the protocol (creating a "protocol space"), followed by the specific option value used by that protocol. This preserves the protocol's native numbering scheme while allowing SCHC to differentiate between options from different protocols that might share the same numeric value.
+The solution involves defining within SCHC an identity that references the protocol (creating a "protocol space"), followed by the specific option identifier used by that protocol. This preserves the protocol's native numbering scheme while allowing SCHC to differentiate between options from different protocols that might share the same option identifier.
 
 Using this approach, a Rule that includes various CoAP options would directly reference the CoAP option numbers rather than abstract FIDs. For instance, the representation of a URI with two path elements (option 11) and two query elements (option 15) might look like (cf. {{fig-proto-id}}):
 
@@ -293,7 +293,7 @@ Using this approach, a Rule that includes various CoAP options would directly re
 ~~~~
 {: #fig-proto-id title="Rule including options ID." artwork-align="center"}
 
-In this example, option numbers 11 (URI-Path) and 15 (URI-Query) are directly specified, along with their position and direction, providing clear identification of which CoAP options are being compressed without requiring predefined FIDs for each option type.
+In this example, option identifiers 11 (URI-Path) and 15 (URI-Query) are directly specified, along with their position and direction, providing clear identification of which CoAP options are being compressed without requiring predefined FIDs for each option type.
 
 #Data Model Implementation Challenges
 
@@ -303,7 +303,7 @@ While this approach offers clear advantages for interoperability and protocol ev
            +--:(compression) {compression}?
               +--rw entry* [field-id field-position direction-indicator]
                  +--rw field-id                    schc:fid-type
-                 +--rw field-length                union
+                 +--rw field-length                schc:fl-type
                  +--rw field-position              uint8
                  +--rw direction-indicator         schc:di-type
                  .
@@ -323,10 +323,10 @@ A more effective solution is to augment the current compression data model with 
 
 ~~~~
   +--rw schc-opt:entry-option-space* \
-          [space-id option-value field-position direction-indicator]
+          [space-id option-id field-position direction-indicator]
     +--rw schc-opt:space-id                    space-type
-    +--rw schc-opt:option-value                uint32
-    +--rw schc-opt:field-length                union
+    +--rw schc-opt:option-id                   uint32
+    +--rw schc-opt:field-length                schc:fl-type
     +--rw schc-opt:field-position              uint8
     +--rw schc-opt:direction-indicator         schc:di-type
     .
@@ -339,9 +339,9 @@ In this augmented model:
 
 * The space-id defines the protocol namespace (e.g., CoAP, TCP), with values provided by the SCHC Working Group
 
-* The option-value contains the actual option number as defined in the protocol's IANA registry
+* The option-id contains the actual option identifier as defined in the protocol's IANA registry
 
-* The remaining elements (field-length, field-position, etc.) function as they do in the standard entry structure, but they will be diffentely identified.
+* The remaining elements (field-length, field-position, etc.) function as they do in the standard entry structure, but they will be diffently identified.
 
 This approach maintains the semantic efficiency of SCHC while eliminating the need for protocol-to-FID mappings.
 
@@ -483,21 +483,19 @@ module ietf-schc-opt {
 
  augment "/schc:schc/schc:rule/schc:nature/schc:compression" {
   list entry-option-space {
-    key "space-id option-value field-position direction-indicator";
+    key "space-id option-id field-position direction-indicator";
     leaf space-id {
       type space-type;
       mandatory true;
       description
         "";
     }
-    leaf option-value {
+    leaf option-id {
       type uint32;
     }
     leaf field-length {
-      type union {
-      type uint8;
       type schc:fl-type;
-        }
+      
       mandatory true;
       description
         "Field Length, expressed in number of bits if the length is
@@ -802,7 +800,7 @@ The Universal Options approach preserves protocol option identifiers directly wi
 
 ### Implementation Approach
 
-In this approach, we assign SIDs starting from 7000 to the YANG Data Model augmentation defined in this document. All CoAP options are represented by a combination of a space ID (indicating the protocol namespace, in this case CoAP) and the option number as used in the CoAP protocol. This allows the SCP82-Param option to be processed like any other option, regardless of whether it was defined when the SCHC implementation was created.
+In this approach, we assign SIDs starting from 7000 to the YANG Data Model augmentation defined in this document. All CoAP options are represented by a combination of a space ID (indicating the protocol namespace, in this case CoAP) and the option identifier as used in the CoAP protocol. This allows the SCP82-Param option to be processed like any other option, regardless of whether it was defined when the SCHC implementation was created.
 
 ### CBOR Serialization
 
@@ -830,7 +828,7 @@ The diagnostic representation of the CBOR message is the following:
 ~~~
 Deltas in entry part:
 - 6: field-id                     **1916: space-id  
-- 7: field-length                 **1915: option-value 
+- 7: field-length                 **1915: option-id 
 - 8: field-position               **1909: field-length
 - 5: direction-indicator          **1910: field-position
 - 9: matching-operator            **1908: direction-indicator
@@ -876,7 +874,7 @@ REQ: FETCH </c>
     1,        / rule-id-value
     8,        / rule-id-length
     7002,     / space-id-value
-    17,       / option-value
+    17,       / option-id
     1,        / field-position
     5019,     / direction-indicator
     0]        / target-value/index
@@ -930,7 +928,7 @@ The diagnostic representation reveals the structure of this serialized rule:
 ~~~
 Deltas in entry part:
 - 23: field-id                     -14: space-id  
-* 24: field-length                 -11: option-value 
+* 24: field-length                 -11: option-id 
 * 25: field-position               -7: field-length
 - 22: direction-indicator          -8: field-position
 * 26: matching-operator            -6: direction-indicator
@@ -1011,7 +1009,7 @@ The diagnostic representation shows how this approach affects the delta values:
 ~~~
 Deltas in entry part:
 - 23: field-id                     -14: space-id  
-* -9: field-length                 -11: option-value 
+* -9: field-length                 -11: option-id 
 * -8: field-position               -7: field-length
 - 22: direction-indicator          -8: field-position
 * -7: matching-operator            -6: direction-indicator
@@ -1100,7 +1098,7 @@ The SID allocation file was manually edited to optimize delta values, as shown i
 5079;data;/ietf-schc:schc/rule/entry-option-space/matching-operator-value
 5080;data;/ietf-schc:schc/rule/entry-option-space/matching-operator-value/index
 5081;data;/ietf-schc:schc/rule/entry-option-space/matching-operator-value/value
-5082;data;/ietf-schc:schc/rule/entry-option-space/option-value
+5082;data;/ietf-schc:schc/rule/entry-option-space/option-id
 5083;data;/ietf-schc:schc/rule/entry-option-space/space-id
 5084;data;/ietf-schc:schc/rule/entry-option-space/target-value
 5085;data;/ietf-schc:schc/rule/entry-option-space/target-value/index
@@ -1265,7 +1263,7 @@ The serialization uses the manually assigned sid to minize the representation. T
 ~~~
 Deltas in entry part:
 - 23: field-id                     -14: space-id  
-* -9: field-length                 -11: option-value 
+* -9: field-length                 -11: option-id 
 * -8: field-position               -7: field-length
 - 22: direction-indicator          -8: field-position
 * -7: matching-operator            -6: direction-indicator
