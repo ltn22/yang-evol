@@ -294,82 +294,82 @@ One important specification is that for every leaf-list, the YANG Data Model des
 
 Example:
 - Add TV into fid-ipv6-payload-length/1/di-bidirectional in Rule 0/3
-~~~
-REQ: iPATCH /c
-     (Content-Format: application/yang-identifiers+cbor-seq)
-{
+  ~~~
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  {
   ["target-value", 0, 3, "fid-ipv6-payload-length", 1, "di-bidirectional"] : [
-    {delta_index : 0, delta_value : h"50"},
-    {delta_index : 1, delta_value : h"55"}
+      {delta_index : 0, delta_value : h"50"},
+      {delta_index : 1, delta_value : h"55"}
   ]
-}
-
-RES: 2.04 Changed
-~~~
+  }
+  
+  RES: 2.04 Changed
+  ~~~
 
 #### Update
 A request can be considered as an update if the target associated with the various keys is present in the context. Otherwise, it could be consider as an add or an error.
 
 Example : 
 - The Entry fid-ipv6-version/1/di-bidirectional is in Rule 6/3.
-~~~
-REQ: iPATCH /c
-     (Content-Format: application/yang-identifiers+cbor-seq)
-{
+  ~~~
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  {
   ["entry", 6, 3, "fid-ipv6-version", 1, "di-bidirectional"] : {
       {"delta_target-value"       : []},
       {"delta_matching-operator"  : "mo-ignore"},
       {"delta_comp-decomp-action" : "cda-value-sent"}
   }
-}
-
-RES: 2.04 Changed
-~~~
+  }
+  
+  RES: 2.04 Changed
+  ~~~
 
 - The Entry fid-ipv6-version/1/di-bidirectional is in not in Rule 7/8 but Rule 7/8 exist.
-~~~
-REQ: iPATCH /c
-     (Content-Format: application/yang-identifiers+cbor-seq)
-{
-  ["entry", 7, 8, "fid-ipv6-version", 1, "di-bidirectional"] : {
-      {"delta_target-value"       : []},
-      {"delta_matching-operator"  : "mo-ignore"},
-      {"delta_comp-decomp-action" : "cda-value-sent"}
+  ~~~
+  REQ: iPATCH /c
+       (Content-Format: application/yang-identifiers+cbor-seq)
+  {
+    ["entry", 7, 8, "fid-ipv6-version", 1, "di-bidirectional"] : {
+        {"delta_target-value"       : []},
+        {"delta_matching-operator"  : "mo-ignore"},
+        {"delta_comp-decomp-action" : "cda-value-sent"}
+    }
   }
-}
-
-RES: 2.04 Changed
-~~~
+  
+  RES: 2.04 Changed
+  ~~~
 
 - The Entry fid-ipv6-version/1/di-bidirectional is not in Rule 5/8, and Rule 5/8 does not exist. Therefore, Rule 5/8 cannot be added in order to include the Entry fid-ipv6-version/1/di-bidirectional because other fields, which are not keys, cannot be deducted at every depth of the context.
-~~~
-REQ: iPATCH /c
-     (Content-Format: application/yang-identifiers+cbor-seq)
-{
-  ["entry", 5, 8, "fid-ipv6-version", 1, "di-bidirectional"] : {
-      {"delta_target-value"       : []},
-      {"delta_matching-operator"  : "mo-ignore"},
-      {"delta_comp-decomp-action" : "cda-value-sent"}
+  ~~~
+  REQ: iPATCH /c
+       (Content-Format: application/yang-identifiers+cbor-seq)
+  {
+    ["entry", 5, 8, "fid-ipv6-version", 1, "di-bidirectional"] : {
+        {"delta_target-value"       : []},
+        {"delta_matching-operator"  : "mo-ignore"},
+        {"delta_comp-decomp-action" : "cda-value-sent"}
+    }
   }
-}
-
-RES: 4.04 Not Found
-~~~
+  
+  RES: 4.04 Not Found
+  ~~~
 
 #### Delete
 To remove an object we use "null" value.
 
 Example:
 - Delete Rule 7/8
-~~~
-REQ: iPATCH /c
-     (Content-Format: application/yang-identifiers+cbor-seq)
-{
-  ["rule", 7, 8]: null
-}
-
-RES: 2.04 Changed
-~~~
+  ~~~
+  REQ: iPATCH /c
+       (Content-Format: application/yang-identifiers+cbor-seq)
+  {
+    ["rule", 7, 8]: null
+  }
+  
+  RES: 2.04 Changed
+  ~~~
 
 For deletion, we limit the actions and consider a minimal CORECONF representation as {"ietf-schc:schc" : {"rule" : []}}. 
 Therefore, a request trying to delete "ietf-schc:schc" will set the CORECONF representation to the minimal one.
@@ -377,15 +377,15 @@ Additionally, while updates are authorized, deleting a protected key is forbidde
 
 Example:
 - Delete rule-id-value of Rule 0/3
-~~~
-REQ: iPATCH /c
-     (Content-Format: application/yang-identifiers+cbor-seq)
-{
-  ["rule-id-value", 0, 3]: null
-}
-
-RES: 4.00 Bad Request
-~~~
+  ~~~
+  REQ: iPATCH /c
+       (Content-Format: application/yang-identifiers+cbor-seq)
+  {
+    ["rule-id-value", 0, 3]: null
+  }
+  
+  RES: 4.00 Bad Request
+  ~~~
 
 
 ### Optimization
@@ -457,6 +457,8 @@ Both implements CoAP client and server capabilities. The server uses port 5683 a
 
 ## Compression Rules
 
+Two rules are required for management functionality. The first rule (RuleID 0) defines packets containing application payloads that include a CoAP Content-Format field. Depending on the direction (Up or Down), this rule manages Confirmable FETCH/iPATCH requests or Non-Confirmable Content responses accordingly. Therefore, the second rule (RuleID 1) is used to compress packets which do not include application payload, basically response packets in downlink.
+
 ~~~
  +---------------------------------------------------------------------------------------------+
  |RuleID 0                                                                                     |
@@ -490,6 +492,7 @@ Both implements CoAP client and server capabilities. The server uses port 5683 a
  |CoAP Content-Format|8 |1 |Bi|application/yang-identifiers+cbor-seq|equal        |not-sent    |
  +===================+==+==+==+=====================================+=============+============+
 ~~~
+{: #Fig-Management-Rule title='Management Rule 0'}
 
 ~~~
  +---------------------------------------------------------------------------------------------+
@@ -520,6 +523,7 @@ Both implements CoAP client and server capabilities. The server uses port 5683 a
  |CoAP MID           |16|1 |Bi|0                                    |MSB(9)       |LSB         |
  +===================+==+==+==+=====================================+=============+============+
 ~~~
+{: #Fig-Management-Rule title='Management Rule 1'}
 
 # OSCORE
 
@@ -569,9 +573,7 @@ def test_context() -> Generator[Tuple[CORECONFManager, Dict], None, None]:
     # Cleanup
     cc_manager.cancel_pending_timers()
 
-
 # ********************************************************************** #
-
 
 def perform_modification(cc_manager: CORECONFManager, yang_request: Dict):
     """Helper to perform modification operation."""
@@ -582,9 +584,7 @@ def perform_modification(cc_manager: CORECONFManager, yang_request: Dict):
 
     cc_manager.modify_object(matching_data=matching)
 
-
 # ********************************************************************** #
-
 
 def verify_context_equals(cc_manager: CORECONFManager, expected_context: Dict):
     """Assert the context matches expected value."""
@@ -593,18 +593,14 @@ def verify_context_equals(cc_manager: CORECONFManager, expected_context: Dict):
         other_coreconf_context=expected_context
     )
 
-
 # ********************************************************************** #
-
 
 def verify_context_unchanged(cc_manager: CORECONFManager, original_context: Dict):
     """Assert the context remains unchanged."""
 
     verify_context_equals(cc_manager=cc_manager, expected_context=original_context)
 
-
 # =========================== DELETION TESTS =========================== #
-
 
 def test_delete_root_element(test_context):
     """
@@ -617,16 +613,16 @@ def test_delete_root_element(test_context):
     cc_manager: CORECONFManager
     cc_manager, _ = test_context
 
-    yang_request: Dict = {("/ietf-schc:schc"): None}
+    yang_request: Dict = {
+        ("/ietf-schc:schc"): None
+    }
 
     expected_result: Dict = {5100: {1: []}}
 
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_delete_rule(test_context):
     """
@@ -639,16 +635,16 @@ def test_delete_rule(test_context):
     cc_manager: CORECONFManager
     cc_manager, _ = test_context
 
-    yang_request: Dict = {("/ietf-schc:schc/rule", 0, 3): None}
+    yang_request: Dict = {
+        ("/ietf-schc:schc/rule", 0, 3): None
+    }
 
     expected_result: Dict = {5100: {1: [{33: 3, 34: 2, 35: 5091, 36: 5094}]}}
 
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_delete_existing_entry(test_context):
     """
@@ -662,14 +658,7 @@ def test_delete_existing_entry(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry",
-            0,
-            3,
-            "fid-ipv6-version",
-            1,
-            "di-bidirectional",
-        ): None
+        ("/ietf-schc:schc/rule/entry", 0, 3, "fid-ipv6-version", 1, "di-bidirectional"): None
     }
 
     expected_result: Dict = {
@@ -678,59 +667,30 @@ def test_delete_existing_entry(test_context):
                 {
                     4: [
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -738,9 +698,7 @@ def test_delete_existing_entry(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_delete_on_basic_key(test_context):
     """
@@ -753,75 +711,41 @@ def test_delete_on_basic_key(test_context):
     cc_manager: CORECONFManager
     cc_manager, _ = test_context
 
-    yang_request: Dict = {("/ietf-schc:schc/rule/rule-status", 0, 3): None}
+    yang_request: Dict = {
+        ("/ietf-schc:schc/rule/rule-status", 0, 3): None
+    }
 
     expected_result: Dict = {
         5100: {
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
+                    33: 3, 34: 0, 35: 5088
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -829,9 +753,7 @@ def test_delete_on_basic_key(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_delete_leaf_list_single(test_context):
     """
@@ -845,15 +767,7 @@ def test_delete_leaf_list_single(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry/target-value/value",
-            0,
-            3,
-            "fid-ipv6-version",
-            1,
-            "di-bidirectional",
-            0,
-        ): None
+        ("/ietf-schc:schc/rule/entry/target-value/value", 0, 3, "fid-ipv6-version", 1, "di-bidirectional", 0): None
     }
 
     expected_result: Dict = {
@@ -863,59 +777,30 @@ def test_delete_leaf_list_single(test_context):
                     4: [
                         {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083},
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -923,9 +808,7 @@ def test_delete_leaf_list_single(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_delete_leaf_list_several(test_context):
     """
@@ -940,15 +823,7 @@ def test_delete_leaf_list_several(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry/target-value/value",
-            0,
-            3,
-            "fid-ipv6-trafficclass",
-            1,
-            "di-bidirectional",
-            1,
-        ): None
+        ("/ietf-schc:schc/rule/entry/target-value/value", 0, 3, "fid-ipv6-trafficclass", 1, "di-bidirectional", 1): None
     }
 
     expected_result: Dict = {
@@ -956,68 +831,31 @@ def test_delete_leaf_list_several(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1025,9 +863,7 @@ def test_delete_leaf_list_several(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_delete_unknown_entry(test_context):
     """
@@ -1042,22 +878,13 @@ def test_delete_unknown_entry(test_context):
     cc_manager, original_context = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry",
-            2,
-            3,
-            "fid-ipv6-version",
-            1,
-            "di-bidirectional",
-        ): None
+        ("/ietf-schc:schc/rule/entry", 2, 3, "fid-ipv6-version", 1, "di-bidirectional"): None
     }
 
     perform_modification(cc_manager, yang_request)
     verify_context_unchanged(cc_manager, original_context)
 
-
 # ********************************************************************** #
-
 
 def test_delete_protected_key(test_context):
     """
@@ -1070,14 +897,14 @@ def test_delete_protected_key(test_context):
     original_context: Dict
     cc_manager, original_context = test_context
 
-    yang_request: Dict = {("/ietf-schc:schc/rule/rule-id-value", 0, 3): None}
+    yang_request: Dict = {
+        ("/ietf-schc:schc/rule/rule-id-value", 0, 3): None
+    }
 
     perform_modification(cc_manager, yang_request)
     verify_context_unchanged(cc_manager, original_context)
 
-
 # ======================= UPDATE TESTS =======================
-
 
 def test_update_protected_key(test_context):
     """
@@ -1090,76 +917,41 @@ def test_update_protected_key(test_context):
     cc_manager: CORECONFManager
     cc_manager, _ = test_context
 
-    yang_request: Dict = {("/ietf-schc:schc/rule/rule-id-value", 0, 3): 5}
+    yang_request: Dict = {
+        ("/ietf-schc:schc/rule/rule-id-value", 0, 3): 5
+    }
 
     expected_result: Dict = {
         5100: {
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 5,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 5, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1167,9 +959,7 @@ def test_update_protected_key(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_update_basic_key(test_context):
     """
@@ -1191,69 +981,32 @@ def test_update_basic_key(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5096,
+                    33: 3, 34: 0, 35: 5088, 36: 5096
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1261,9 +1014,7 @@ def test_update_basic_key(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ======================= ADDITION TESTS =======================
-
 
 def test_add_new_entry(test_context):
     """
@@ -1277,20 +1028,13 @@ def test_add_new_entry(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry",
-            0,
-            3,
-            "fid-ipv6-appprefix",
-            1,
-            "di-bidirectional",
-        ): {
+        ("/ietf-schc:schc/rule/entry", 0, 3, "fid-ipv6-appprefix", 1, "di-bidirectional"): {
             "field-length": 64,
             "target-value": [
-                {"index": 0, "value": "/oAAAAAAAAA="}
-            ],  # b"\xfe\x80\x00\x00\x00\x00\x00\x00"
+                {"index": 0, "value": "/oAAAAAAAAA="} # b"\xfe\x80\x00\x00\x00\x00\x00\x00"
+            ],
             "matching-operator": "ietf-schc:mo-equal",
-            "comp-decomp-action": "ietf-schc:cda-not-sent",
+            "comp-decomp-action": "ietf-schc:cda-not-sent"
         }
     }
 
@@ -1299,78 +1043,33 @@ def test_add_new_entry(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5057,
-                            7: 64,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\xfe\x80\x00\x00\x00\x00\x00\x00"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]},
+                        {1: 5015, 5: 5018, 6: 5057, 7: 64, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\xfe\x80\x00\x00\x00\x00\x00\x00"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1378,9 +1077,7 @@ def test_add_new_entry(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_add_leaf_list_incremental(test_context):
     """
@@ -1394,14 +1091,9 @@ def test_add_leaf_list_incremental(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry/target-value",
-            0,
-            3,
-            "fid-ipv6-flowlabel",
-            1,
-            "di-bidirectional",
-        ): {"index": 4, "value": "vLw="}
+        ("/ietf-schc:schc/rule/entry/target-value", 0, 3, "fid-ipv6-flowlabel", 1, "di-bidirectional"): {
+            "index": 4, "value": "vLw="
+        }
     }
 
     expected_result: Dict = {
@@ -1409,70 +1101,33 @@ def test_add_leaf_list_incremental(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
                                 {1: 3, 2: b"\x0f\xf8\x5f"},
-                                {1: 4, 2: b"\xbc\xbc"},
-                            ],
+                                {1: 4, 2: b"\xbc\xbc"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1480,9 +1135,7 @@ def test_add_leaf_list_incremental(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_add_leaf_list_non_incremental(test_context):
     """
@@ -1496,14 +1149,9 @@ def test_add_leaf_list_non_incremental(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry/target-value",
-            0,
-            3,
-            "fid-ipv6-flowlabel",
-            1,
-            "di-bidirectional",
-        ): {"index": 7, "value": "vLw="}
+        ("/ietf-schc:schc/rule/entry/target-value", 0, 3, "fid-ipv6-flowlabel", 1, "di-bidirectional"): {
+            "index": 7, "value": "vLw="
+        }
     }
 
     expected_result: Dict = {
@@ -1511,70 +1159,33 @@ def test_add_leaf_list_non_incremental(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                        { 
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                                {1: 7, 2: b"\xbc\xbc"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}, 
+                                {1: 7, 2: b"\xbc\xbc"}
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
-                    ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
+                    ], 
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1582,9 +1193,7 @@ def test_add_leaf_list_non_incremental(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_add_new_key_value(test_context):
     """
@@ -1598,14 +1207,10 @@ def test_add_new_key_value(test_context):
     cc_manager, _ = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry/target-value",
-            0,
-            3,
-            "fid-ipv6-payload-length",
-            1,
-            "di-bidirectional",
-        ): [{"index": 0, "value": "UA=="}, {"index": 1, "value": "VQ=="}]
+        ("/ietf-schc:schc/rule/entry/target-value", 0, 3, "fid-ipv6-payload-length", 1, "di-bidirectional"): [
+            {"index": 0, "value": "UA=="}, 
+            {"index": 1, "value": "VQ=="}
+        ]
     }
 
     expected_result: Dict = {
@@ -1613,77 +1218,32 @@ def test_add_new_key_value(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ],
+                                {1: 3, 2: b"\xf7"}
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                                {1: 3, 2: b"\x0f\xf8\x5f"}
+                            ]
                         },
-                        {
-                            1: 5011,
-                            5: 5018,
-                            6: 5064,
-                            7: 16,
-                            8: 1,
-                            9: 5084,
-                            13: [{1: 0, 2: b"\x50"}, {1: 1, 2: b"\x55"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
+                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084, 13: [{1: 0, 2: b"\x50"}, {1: 1, 2: b"\x55"}]},
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
                     ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                    33: 3, 34: 0, 35: 5088, 36: 5094
                 },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
+                {33: 3, 34: 2, 35: 5091, 36: 5094}
             ]
         }
     }
@@ -1691,9 +1251,7 @@ def test_add_new_key_value(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
 def test_add_new_rule(test_context):
     """
@@ -1720,70 +1278,32 @@ def test_add_new_rule(test_context):
             1: [
                 {
                     4: [
+                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
                         {
-                            1: 5015,
-                            5: 5018,
-                            6: 5068,
-                            7: 4,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x06"}],
-                        },
-                        {
-                            1: 5014,
-                            5: 5018,
-                            6: 5065,
-                            7: 8,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\xff"},
                                 {1: 1, 2: b"\xfe"},
                                 {1: 2, 2: b"\xf1"},
                                 {1: 3, 2: b"\xf7"},
-                            ],
+                            ]
                         },
                         {
-                            1: 5014,
-                            5: 5018,
-                            6: 5061,
-                            7: 20,
-                            8: 1,
-                            9: 5085,
+                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
                             13: [
                                 {1: 0, 2: b"\x00\xef\x2d"},
                                 {1: 1, 2: b"\x0f\xfe\x2d"},
                                 {1: 2, 2: b"\x07\x77\x77"},
                                 {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ],
+                            ]
                         },
                         {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5063,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x11"}],
-                        },
-                        {
-                            1: 5015,
-                            5: 5018,
-                            6: 5062,
-                            7: 8,
-                            8: 1,
-                            9: 5083,
-                            13: [{1: 0, 2: b"\x40"}],
-                        },
-                    ],
-                    33: 3,
-                    34: 0,
-                    35: 5088,
-                    36: 5094,
+                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
+                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
+                    ], 33: 3, 34: 0, 35: 5088, 36: 5094
                 },
                 {33: 3, 34: 2, 35: 5091, 36: 5094},
-                {33: 3, 34: 5, 35: 5088, 36: 5094},
+                {33: 3, 34: 5, 35: 5088, 36: 5094}
             ]
         }
     }
@@ -1791,9 +1311,7 @@ def test_add_new_rule(test_context):
     perform_modification(cc_manager, yang_request)
     verify_context_equals(cc_manager, expected_result)
 
-
 # ********************************************************************** #
-
 
   def test_add_entry_into_unknown_rule(test_context):
     """
@@ -1809,14 +1327,7 @@ def test_add_new_rule(test_context):
     cc_manager, original_context = test_context
 
     yang_request: Dict = {
-        (
-            "/ietf-schc:schc/rule/entry",
-            250,
-            8,
-            "fid-ipv6-payload-length",
-            1,
-            "di-bidirectional",
-        ): {
+        ("/ietf-schc:schc/rule/entry", 250, 8, "fid-ipv6-payload-length", 1, "di-bidirectional"): {
             "field-length": 16,
             "matching-operator": "ietf-schc:mo-ignore",
             "comp-decomp-action": "ietf-schc:cda-value-sent",
@@ -1825,7 +1336,6 @@ def test_add_new_rule(test_context):
 
     perform_modification(cc_manager, yang_request)
     verify_context_unchanged(cc_manager, original_context)
-
 ~~~
 
 
