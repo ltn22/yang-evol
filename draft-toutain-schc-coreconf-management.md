@@ -234,7 +234,7 @@ In the YANG tree, all the lines of the tree have a SID number. Each level of the
 
 Therefore, to access a specific element in a hierarchy, the SID of this element has to be specified, followed by the keys needed to access it.
 
-For example, ["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0] is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
+For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0]` is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
 
 ### FETCH
 As mentionned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
@@ -368,7 +368,7 @@ Example:
   RES: 2.04 Changed
   ~~~
 
-For deletion, we limit the actions and consider a minimal CORECONF representation as {"ietf-schc:schc" : {"rule" : []}}. 
+For deletion, we limit the actions and consider a minimal CORECONF representation as `{"ietf-schc:schc" : {"rule" : []}}`. 
 Therefore, a request trying to delete "ietf-schc:schc" will set the CORECONF representation to the minimal one.
 Additionally, while updates are authorized, deleting a protected key is forbidden.
 
