@@ -166,8 +166,6 @@ In order to accomplish management, the YANG Data Model has been updated.
 M Rules have to be marked in a way that allows quickly identifying which rules in a SoR are responsible for management. 
 Therefore, a new "nature-management" type has been defined. This nature is actually a specialization of "nature-compression" for management purposes and compression needs to be available and activated to do management.
 
-## comp doit estr activer pour manag....
-
 ### Guard
 To determine if a rule is considered available or not during the guard period, a rule needs to have a status which determines if it can be used. Basically, an available rule MUST associate the key "rule-status" with the value "status-active".
 Conversely, during the guard period, "rule-status" MUST be set to "status-candidate".
