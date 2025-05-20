@@ -166,10 +166,9 @@ CORECONF proposes an interface to manage data structured with a YANG Data Model.
 SCHC Instance Management MUST use FETCH to read a rule and iPATCH to create, modify or delete a rule.
 In order to accomplish management, the YANG Data Model has been updated. 
 
-### Feature management
+### Nature Management
 M Rules have to be marked in a way that allows quickly identifying which rules in a SoR are responsible for management. 
-Therefore, a new feature named "management" has been defined, which characterizes a new "nature-management" type.
-This nature is actually a specialization of "nature-compression" for management purposes.
+Therefore, a new "nature-management" type has been defined. This nature is actually a specialization of "nature-compression" for management purposes and compression needs to be available and activated to do management.
 
 ### Guard
 To determine if a rule is considered available or not during the guard period, a rule needs to have a status which determines if it can be used. Basically, an available rule MUST associate the key "rule-status" with the value "status-active".
@@ -240,6 +239,7 @@ In the YANG tree, all the lines of the tree have a SID number. Each level of the
 Therefore, to access a specific element in a hierarchy, the SID of this element has to be specified, followed by the keys needed to access it.
 
 For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0]` is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
+For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0]` is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
 
 ### FETCH
 As mentionned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
@@ -263,7 +263,7 @@ RES: 2.05 Content
 ~~~
 
 ### iPATCH
-To write an iPATCH request, several methods could be used. For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, these following commands specify a new TV and change the MO and CDA :
+To write an iPATCH request, several methods could be used. For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, the following command specify a new TV and change the MO and CDA :  
 
 - Specified all conserned fields :
 
@@ -286,8 +286,8 @@ To write an iPATCH request, several methods could be used. For instance, in a Ru
         delta_matching-operator  : "mo-equal",
         delta_comp-decomp-action : "cda-not-sent"
     }
-  }
-  ~~~
+}
+~~~
 
 The same principle is applied to rules and "leaf-list".
 
@@ -307,10 +307,10 @@ Example:
   REQ: iPATCH /c
       (Content-Format: application/yang-identifiers+cbor-seq)
   {
-  ["target-value", 0, 3, "fid-ipv6-payload-length", 1, "di-bidirectional"] : [
-      {delta_index : 0, delta_value : h"50"},
-      {delta_index : 1, delta_value : h"55"}
-  ]
+    ["target-value", 0, 3, "fid-ipv6-payload-length", 1, "di-bidirectional"] : [
+        {delta_index : 0, delta_value : h"50"},
+        {delta_index : 1, delta_value : h"55"}
+    ]
   }
   
   RES: 2.04 Changed
@@ -327,11 +327,11 @@ Example :
   REQ: iPATCH /c
       (Content-Format: application/yang-identifiers+cbor-seq)
   {
-  ["entry", 6, 3, "fid-ipv6-version", 1, "di-bidirectional"] : {
-      {"delta_target-value"       : []},
-      {"delta_matching-operator"  : "mo-ignore"},
-      {"delta_comp-decomp-action" : "cda-value-sent"}
-  }
+    ["entry", 6, 3, "fid-ipv6-version", 1, "di-bidirectional"] : {
+        {"delta_target-value": []},
+        {"delta_matching-operator": "mo-ignore"},
+        {"delta_comp-decomp-action": "cda-value-sent"}
+    }
   }
   
   RES: 2.04 Changed
@@ -447,7 +447,7 @@ In the CORECONF representation, even if the name are similar in the structure, t
 ~~~
 REQ: FETCH </c>
         (Content-Format: application/yang-identifiers+cbor-seq)
-   ["schc-opt:matching-operator", 8, 3, "schc-opt:space-id-CoAP", 11, 1, "di-up"]
+   ["schc-opt:matching-operator", 8, 3, "schc-opt:space-id-coap", 11, 1, "di-up"]
 ~~~
 
 ## RPC
@@ -481,11 +481,11 @@ Both implements CoAP client and server capabilities. The server uses port 5683 a
 
 ## Compression Rules
 
-Two rules are required for management functionality. The first rule (RuleID 0) defines packets containing application payloads that include a CoAP Content-Format field. Depending on the direction (Up or Down), this rule manages Confirmable FETCH/iPATCH requests or Non-Confirmable Content responses accordingly. Therefore, the second rule (RuleID 1) is used to compress packets which do not include application payload, basically response packets in downlink.
+Two rules are required for management functionality. The first rule (RuleID M1) defines packets containing application payloads that include a CoAP Content-Format field. Depending on the direction (Up or Down), this rule manages Confirmable FETCH/iPATCH requests or Non-Confirmable Content responses accordingly. Therefore, the second rule (RuleID M2) is used to compress packets which do not include application payload, basically response packets in downlink.
 
 ~~~
  +---------------------------------------------------------------------------------------------+
- |RuleID 0                                                                                     |
+ |RuleID M1                                                                                    |
  +-------------------+--+--+--+-------------------------------------+-------------+------------+
  |        FID        |FL|FP|DI|                  TV                 |     MO      |    CDA     |
  +-------------------+--+--+--+-------------------------------------+-------------+------------+
@@ -516,36 +516,36 @@ Two rules are required for management functionality. The first rule (RuleID 0) d
  |CoAP Content-Format|8 |1 |Bi|application/yang-identifiers+cbor-seq|equal        |not-sent    |
  +===================+==+==+==+=====================================+=============+============+
 ~~~
-{: #Fig-Management-Rule title='Management Rule 0'}
+{: #Fig-M1 title='Management Rule 1'}
 
 ~~~
- +---------------------------------------------------------------------------------------------+
- |RuleID 1                                                                                     |
- +-------------------+--+--+--+-------------------------------------+-------------+------------+
- |        FID        |FL|FP|DI|                  TV                 |     MO      |    CDA     |
- +-------------------+--+--+--+-------------------------------------+-------------+------------+
- |IPv6 Version       |4 |1 |Bi|6                                    |equal        |not-sent    |
- |IPv6 Traffic Class |8 |1 |Bi|1                                    |equal        |not-sent    |
- |IPv6 Flow Label    |20|1 |Bi|144470                               |equal        |not-sent    |
- |IPv6 Length        |16|1 |Bi|                                     |ignore       |compute-*   |
- |IPv6 Next Header   |8 |1 |Bi|17                                   |equal        |not-sent    |
- |IPv6 Hop Limit     |8 |1 |Bi|64                                   |equal        |not-sent    |
- |IPv6 DevPrefix     |64|1 |Bi|fe80::/64                            |equal        |not-sent    |
- |IPv6 DevIID        |64|1 |Bi|::2                                  |equal        |not-sent    |
- |IPv6 AppPrefix     |64|1 |Bi|fe80::/64                            |equal        |not-sent    |
- |IPv6 AppIID        |64|1 |Bi|::1                                  |equal        |not-sent    |
- +===================+==+==+==+=====================================+=============+============+
- |UDP DevPort        |16|1 |Bi|3865                                 |equal        |not-sent    |
- |UDP AppPort        |16|1 |Bi|5683                                 |equal        |not-sent    |
- |UDP Length         |16|1 |Bi|                                     |ignore       |compute-*   |
- |UDP Checksum       |16|1 |Bi|                                     |ignore       |compute-*   |
- +===================+==+==+==+=====================================+=============+============+
- |CoAP Version       |2 |1 |Bi|1                                    |equal        |not-sent    |
- |CoAP Type          |2 |1 |Dw|2                                    |equal        |not-sent    |
- |CoAP TKL           |4 |1 |Bi|0                                    |equal        |not-sent    |
- |CoAP Code          |8 |1 |Dw|[68, 128, 132]                       |match-mapping|mapping-sent|
- |CoAP MID           |16|1 |Bi|0                                    |MSB(9)       |LSB         |
- +===================+==+==+==+=====================================+=============+============+
+ +----------------------------------------------------------------------+
+ |RuleID M2                                                             |
+ +-------------------+--+--+--+--------------+-------------+------------+
+ |        FID        |FL|FP|DI|      TV      |     MO      |    CDA     |
+ +-------------------+--+--+--+--------------+-------------+------------+
+ |IPv6 Version       |4 |1 |Bi|6             |equal        |not-sent    |
+ |IPv6 Traffic Class |8 |1 |Bi|1             |equal        |not-sent    |
+ |IPv6 Flow Label    |20|1 |Bi|144470        |equal        |not-sent    |
+ |IPv6 Length        |16|1 |Bi|              |ignore       |compute-*   |
+ |IPv6 Next Header   |8 |1 |Bi|17            |equal        |not-sent    |
+ |IPv6 Hop Limit     |8 |1 |Bi|64            |equal        |not-sent    |
+ |IPv6 DevPrefix     |64|1 |Bi|fe80::/64     |equal        |not-sent    |
+ |IPv6 DevIID        |64|1 |Bi|::2           |equal        |not-sent    |
+ |IPv6 AppPrefix     |64|1 |Bi|fe80::/64     |equal        |not-sent    |
+ |IPv6 AppIID        |64|1 |Bi|::1           |equal        |not-sent    |
+ +===================+==+==+==+==============+=============+============+
+ |UDP DevPort        |16|1 |Bi|3865          |equal        |not-sent    |
+ |UDP AppPort        |16|1 |Bi|5683          |equal        |not-sent    |
+ |UDP Length         |16|1 |Bi|              |ignore       |compute-*   |
+ |UDP Checksum       |16|1 |Bi|              |ignore       |compute-*   |
+ +===================+==+==+==+==============+=============+============+
+ |CoAP Version       |2 |1 |Bi|1             |equal        |not-sent    |
+ |CoAP Type          |2 |1 |Dw|2             |equal        |not-sent    |
+ |CoAP TKL           |4 |1 |Bi|0             |equal        |not-sent    |
+ |CoAP Code          |8 |1 |Dw|[68, 128, 132]|match-mapping|mapping-sent|
+ |CoAP MID           |16|1 |Bi|0             |MSB(9)       |LSB         |
+ +===================+==+==+==+==============+=============+============+
 ~~~
 {: #Fig-Management-Rule2 title='Management Rule 1'}
 
@@ -558,811 +558,365 @@ Two rules are required for management functionality. The first rule (RuleID 0) d
 ## Compression Rules
 
 
-# Example CORECONF Usage in Python
+# Example CORECONF usage in Python
 
-~~~
-from typing import Dict, Generator, Tuple
-from copy import deepcopy
+## Deletion cases
 
-import pytest
+* Delete root element:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc'): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5100): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1811913ecf6
 
-from src.coreconf.coreconf_manager import CORECONFManager
-from src.coreconf.coreconf_matching import CORECONFMatchingData
+  RES: 2.04 Changed
+  ~~~
 
+* Delete a specific rule:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule', 0, 3): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5101, 0, 3): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1831913ed0003f6
+  
+  RES: 2.04 Changed
+  ~~~
+  
+* Delete a specific entry:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry', 0, 3, 'fid-ipv6-version', 1, 'di-bidirectional'): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5105, 0, 3, 5068, 1, 5018): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913f100031913cc0119139af6
+  
+  RES: 2.04 Changed
+  ~~~
+  
+* Delete a basic key:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/rule-status', 0, 3): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5137, 0, 3): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1831914110003f6
 
-@pytest.fixture
-def test_context() -> Generator[Tuple[CORECONFManager, Dict], None, None]:
-    """
-    Initialize CORECONFManager with test data and provide original context for comparison.
+  RES: 2.04 Changed
+  ~~~
+  
+* Delete a leaf-list single:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry/target-value/value', 0, 3, 'fid-ipv6-version', 1, 'di-bidirectional', 0): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5120, 0, 3, 5068, 1, 5018, 0): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a18719140000031913cc0119139a00f6
+  
+  RES: 2.04 Changed
+  ~~~
+  
+* Delete a leaf-list several:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry/target-value/value', 0, 3, 'fid-ipv6-trafficclass', 1, 'di-bidirectional', 1): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5120, 0, 3, 5065, 1, 5018, 1): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a18719140000031913c90119139a01f6
 
-    Returns:
-        (Generator[Tuple[CORECONFManager, Dict]]): Manager and original context
-    """
+  RES: 2.04 Changed
+  ~~~
+  
+* Delete an unknown entry:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry', 2, 3, 'fid-ipv6-version', 1, 'di-bidirectional'): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5105, 2, 3, 5068, 1, 5018): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913f102031913cc0119139af6
 
-    sid_file: str = "./data/yang/ietf-schc@2025-04-16.sid"
-    model_file: str = "./data/yang/description.json"
-    context_file: str = "./data/context/test.json"
+  RES: 4.00 Bad Request
+  ~~~
+  
+* Delete a protected key:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/rule-id-value', 0, 3): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5135, 0, 3): None
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a18319140f0003f6
 
-    cc_manager: CORECONFManager = CORECONFManager(
-        sid_filename=sid_file,
-        yang_model_description_filename=model_file,
-        context_filename=context_file,
-    )
+  RES: 4.00 Bad Request
+  ~~~
 
-    # Store original context for comparison without modifying the cc_manager
-    original_context: Dict = deepcopy(cc_manager.coreconf_context)
+## Update cases
 
-    yield cc_manager, original_context
+* Update protected key:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/rule-id-value', 0, 3): 5
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5135, 0, 3): 5
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a18319140f000305
 
-    # Cleanup
-    cc_manager.cancel_pending_timers()
+  RES: 2.04 Changed
+  ~~~
 
-# ********************************************************************** #
+* Update basic key:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/rule-status', 0, 3): 'status-candidate'
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5137, 0, 3): 5096
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a18319141100031913e8
 
-def perform_modification(cc_manager: CORECONFManager, yang_request: Dict):
-    """Helper to perform modification operation."""
+  RES: 2.04 Changed
+  ~~~
 
-    matching: CORECONFMatchingData = cc_manager.prepare_ipatch_management_request(
-        sid_request_args=cc_manager.format_clear_request(request_args=yang_request)
-    )[0]
+## Addition cases
 
-    cc_manager.modify_object(matching_data=matching)
-
-# ********************************************************************** #
-
-def verify_context_equals(cc_manager: CORECONFManager, expected_context: Dict):
-    """Assert the context matches expected value."""
-
-    assert cc_manager.check_coreconf_context_equivalence(
-        other_coreconf_context=expected_context
-    )
-
-# ********************************************************************** #
-
-def verify_context_unchanged(cc_manager: CORECONFManager, original_context: Dict):
-    """Assert the context remains unchanged."""
-
-    verify_context_equals(cc_manager=cc_manager, expected_context=original_context)
-
-# =========================== DELETION TESTS =========================== #
-
-def test_delete_root_element(test_context):
-    """
-    Test deletion of the root element.
-
-    When the root element is deleted, all SCHC rules should be removed,
-    but not the entire structure whose minimal structure is {5100: {1: []}}.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc"): None
+* Add a new entry:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry', 0, 3, 'fid-ipv6-appprefix', 1, 'di-bidirectional'): {
+        'field-length': 64, 
+        'target-value': [{'index': 0, 'value': '/oAAAAAAAAA='}], 
+        'matching-operator': 'ietf-schc:mo-equal', 
+        'comp-decomp-action': 'ietf-schc:cda-not-sent'
     }
-
-    expected_result: Dict = {5100: {1: []}}
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_delete_rule(test_context):
-    """
-    Test deletion of a specific rule.
-
-    When deleting rule 0/3, that specific rule should be removed from the
-    configuration while all other rules remain intact.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule", 0, 3): None
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5105, 0, 3, 5057, 1, 5018): {
+        7: 64, 
+        13: [{1: 0, 2: b'\xfe\x80\x00\x00\x00\x00\x00\x00'}], 
+        9: 5083, 
+        1: 5015
     }
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913f100031913c10119139aa40718400d81a201000248fe80000000000000091913db01191397
+  
+  RES: 2.04 Changed
+  ~~~
 
-    expected_result: Dict = {5100: {1: [{33: 3, 34: 2, 35: 5091, 36: 5094}]}}
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_delete_existing_entry(test_context):
-    """
-    Test deletion of a specific entry from a rule.
-
-    When deleting the IPv6 Version entry from rule 0/3, the entry should be removed
-    while all other entries in the rule remain intact.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry", 0, 3, "fid-ipv6-version", 1, "di-bidirectional"): None
+* Add leaf-list incremental:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry/target-value', 0, 3, 'fid-ipv6-flowlabel', 1, 'di-bidirectional'): {
+        'index': 4, 'value': 'vLw='
     }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5118, 0, 3, 5061, 1, 5018): {
+        1: 4, 2: b'\xbc\xbc'
     }
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913fe00031913c50119139aa201040242bcbc
 
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
+  RES: 2.04 Changed
+  ~~~
 
-# ********************************************************************** #
-
-def test_delete_on_basic_key(test_context):
-    """
-    Test deletion of a basic key from a rule.
-
-    When deleting the rule-status field from rule 0/3, that attribute
-    should be removed while all other attributes of the rule remain intact.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/rule-status", 0, 3): None
+* Add leaf-list non-incremental:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry/target-value', 0, 3, 'fid-ipv6-flowlabel', 1, 'di-bidirectional'): {
+        'index': 7, 'value': 'vLw='
     }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5118, 0, 3, 5061, 1, 5018): {
+        1: 7, 2: b'\xbc\xbc'
     }
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913fe00031913c50119139aa201070242bcbc
 
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
+  RES: 2.04 Changed
+  ~~~
 
-# ********************************************************************** #
+* Add new key:value:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry/target-value', 0, 3, 'fid-ipv6-payload-length', 1, 'di-bidirectional'): [
+        {'index': 0, 'value': 'UA=='}, 
+        {'index': 1, 'value': 'VQ=='}
+    ]
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5118, 0, 3, 5064, 1, 5018): [
+        {1: 0, 2: b'\x50'}, {1: 1, 2: b'\x55'}
+    ]
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913fe00031913c80119139a82a20100024150a20101024155
 
-def test_delete_leaf_list_single(test_context):
-    """
-    Test deletion of a single value from a leaf-list.
+  RES: 2.04 Changed
+  ~~~
 
-    When deleting a specific target value (index 0) from the IPv6 Version entry,
-    as there is only this value in this structure, the entire key:value is removed.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry/target-value/value", 0, 3, "fid-ipv6-version", 1, "di-bidirectional", 0): None
+* Add new rule:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule', 5, 3): {
+        'rule-status': 'ietf-schc:status-active', 
+        'rule-id-value': 10, 
+        'rule-id-length': 5, 
+        'rule-nature': 'ietf-schc:nature-compression'
     }
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5101, 5, 3): {36: 5094, 34: 10, 33: 5, 35: 5088}
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1831913ed0503a418241913e618220a18210518231913e0
 
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
+  RES: 2.04 Changed
+  ~~~
+
+* Add entry into unknown rule:
+  
+  ~~~
+  YANG REQ: iPATCH /c
+  {
+    ('/ietf-schc:schc/rule/entry', 250, 8, 'fid-ipv6-payload-length', 1, 'di-bidirectional'): {
+        'field-length': 16, 
+        'matching-operator': 'ietf-schc:mo-ignore', 
+        'comp-decomp-action': 'ietf-schc:cda-value-sent'
     }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_delete_leaf_list_several(test_context):
-    """
-    Test deletion of a value from a multi-value leaf-list.
-
-    When deleting the second value (index 1) from the traffic class entry,
-    only that specific value should be removed, with other values preserved,
-    even if indexes become non-incremental.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry/target-value/value", 0, 3, "fid-ipv6-trafficclass", 1, "di-bidirectional", 1): None
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_delete_unknown_entry(test_context):
-    """
-    Test deletion of a non-existent entry.
-
-    When attempting to delete an entry that doesn't exist (fid-ipv6-version in rule 2/3),
-    the context should remain unchanged as there's nothing to delete.
-    """
-
-    cc_manager: CORECONFManager
-    original_context: Dict
-    cc_manager, original_context = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry", 2, 3, "fid-ipv6-version", 1, "di-bidirectional"): None
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_unchanged(cc_manager, original_context)
-
-# ********************************************************************** #
-
-def test_delete_protected_key(test_context):
-    """
-    Test deletion of a protected key.
-
-    When attempting to delete a protected key (rule-id-value), the operation
-    should fail and the context should remain unchanged.
-    """
-    cc_manager: CORECONFManager
-    original_context: Dict
-    cc_manager, original_context = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/rule-id-value", 0, 3): None
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_unchanged(cc_manager, original_context)
-
-# ======================= UPDATE TESTS =======================
-
-def test_update_protected_key(test_context):
-    """
-    Test updating a protected key.
-
-    When updating a protected key (rule-id-value), the operation should succeed
-    and the value should be changed according to the request.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/rule-id-value", 0, 3): 5
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 5, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_update_basic_key(test_context):
-    """
-    Test updating a basic key.
-
-    When updating a basic key (rule-status), the value should be changed
-    according to the request. This tests changing from "active" to "candidate" status.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/rule-status", 0, 3): "status-candidate"
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5096
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ======================= ADDITION TESTS =======================
-
-def test_add_new_entry(test_context):
-    """
-    Test adding a new entry to a rule.
-
-    When adding a new IPv6 App Prefix entry to rule 0/3,
-    the entry should be properly added.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry", 0, 3, "fid-ipv6-appprefix", 1, "di-bidirectional"): {
-            "field-length": 64,
-            "target-value": [
-                {"index": 0, "value": "/oAAAAAAAAA="} # b"\xfe\x80\x00\x00\x00\x00\x00\x00"
-            ],
-            "matching-operator": "ietf-schc:mo-equal",
-            "comp-decomp-action": "ietf-schc:cda-not-sent"
-        }
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]},
-                        {1: 5015, 5: 5018, 6: 5057, 7: 64, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\xfe\x80\x00\x00\x00\x00\x00\x00"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_add_leaf_list_incremental(test_context):
-    """
-    Test adding a new value to a leaf-list with incremental index.
-
-    When adding a new value with index 4 to the IPv6 Flow Label entry,
-    the value should be properly added.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry/target-value", 0, 3, "fid-ipv6-flowlabel", 1, "di-bidirectional"): {
-            "index": 4, "value": "vLw="
-        }
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                                {1: 4, 2: b"\xbc\xbc"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_add_leaf_list_non_incremental(test_context):
-    """
-    Test adding a new value to a leaf-list with non-incremental index.
-
-    When adding a new value with index 7 (skipping indices 4-6) to the IPv6 Flow Label entry,
-    the value should be properly added even if it is not maintaining the right order.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry/target-value", 0, 3, "fid-ipv6-flowlabel", 1, "di-bidirectional"): {
-            "index": 7, "value": "vLw="
-        }
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        { 
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}, 
-                                {1: 7, 2: b"\xbc\xbc"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ], 
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_add_new_key_value(test_context):
-    """
-    Test adding new key-value pair to an existing entry.
-
-    When adding target values to the IPv6 Payload Length entry,
-    the values should be properly added with the appropriate structure.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry/target-value", 0, 3, "fid-ipv6-payload-length", 1, "di-bidirectional"): [
-            {"index": 0, "value": "UA=="}, 
-            {"index": 1, "value": "VQ=="}
-        ]
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"}
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"}
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084, 13: [{1: 0, 2: b"\x50"}, {1: 1, 2: b"\x55"}]},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ],
-                    33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-def test_add_new_rule(test_context):
-    """
-    Test adding a completely new rule.
-
-    When adding a new rule (5/3), the rule should be properly added
-    with the right (value/length) even is something different is defined.
-    """
-
-    cc_manager: CORECONFManager
-    cc_manager, _ = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule", 5, 3): {
-            "rule-status": "ietf-schc:status-active",
-            "rule-id-value": 10,  # difference here
-            "rule-id-length": 5,  # difference here
-            "rule-nature": "ietf-schc:nature-compression",
-        }
-    }
-
-    expected_result: Dict = {
-        5100: {
-            1: [
-                {
-                    4: [
-                        {1: 5015, 5: 5018, 6: 5068, 7: 4, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x06"}]},
-                        {
-                            1: 5014, 5: 5018, 6: 5065, 7: 8, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\xff"},
-                                {1: 1, 2: b"\xfe"},
-                                {1: 2, 2: b"\xf1"},
-                                {1: 3, 2: b"\xf7"},
-                            ]
-                        },
-                        {
-                            1: 5014, 5: 5018, 6: 5061, 7: 20, 8: 1, 9: 5085,
-                            13: [
-                                {1: 0, 2: b"\x00\xef\x2d"},
-                                {1: 1, 2: b"\x0f\xfe\x2d"},
-                                {1: 2, 2: b"\x07\x77\x77"},
-                                {1: 3, 2: b"\x0f\xf8\x5f"},
-                            ]
-                        },
-                        {1: 5011, 5: 5018, 6: 5064, 7: 16, 8: 1, 9: 5084},
-                        {1: 5015, 5: 5018, 6: 5063, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x11"}]},
-                        {1: 5015, 5: 5018, 6: 5062, 7: 8, 8: 1, 9: 5083, 13: [{1: 0, 2: b"\x40"}]}
-                    ], 33: 3, 34: 0, 35: 5088, 36: 5094
-                },
-                {33: 3, 34: 2, 35: 5091, 36: 5094},
-                {33: 3, 34: 5, 35: 5088, 36: 5094}
-            ]
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_equals(cc_manager, expected_result)
-
-# ********************************************************************** #
-
-  def test_add_entry_into_unknown_rule(test_context):
-    """
-    Test adding an entry into unknown rule.
-
-    When adding a new object into unknown object, the result should
-    remain unchanged because other fields, which are not keys, cannot
-    be deducted at every depth of the context.
-    """
-
-    cc_manager: CORECONFManager
-    original_context: Dict
-    cc_manager, original_context = test_context
-
-    yang_request: Dict = {
-        ("/ietf-schc:schc/rule/entry", 250, 8, "fid-ipv6-payload-length", 1, "di-bidirectional"): {
-            "field-length": 16,
-            "matching-operator": "ietf-schc:mo-ignore",
-            "comp-decomp-action": "ietf-schc:cda-value-sent",
-        }
-    }
-
-    perform_modification(cc_manager, yang_request)
-    verify_context_unchanged(cc_manager, original_context)
-~~~
-
-
+  } 
+  
+  CORECONF REQ: iPATCH /c
+  {
+    (5105, 250, 8, 5064, 1, 5018): {7: 16, 9: 5084, 1: 5016}
+  }
+  
+  REQ: iPATCH /c
+      (Content-Format: application/yang-identifiers+cbor-seq)
+  a1861913f118fa081913c80119139aa30710091913dc01191398
+
+  RES: 4.00 Bad Request
+  ~~~
 
 --- back
 
