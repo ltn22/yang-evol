@@ -82,30 +82,31 @@ SCHC instance management allows the two end-points to modify the common SoR, by:
 * adding a new rule or 
 * removing an existing rules. 
 
-The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}.  M Rules can be either Compression rules or No compression rules. Only M rules can modify the SoR.
+The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}.  Management Rules (or M rules) can be either Compression rules or No compression rules. Only M rules can modify the SoR.
 
+Management procedures uses their own IPv6 stack, independant of the rest of the system. 
 
-SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to managenement inside a QUIC connection) or directly using OSCORE of DTLS.
+SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to managenement inside a QUIC connection) or directly using OSCORE or DTLS.
 
 ~~~~ aasvg
 +-----------------+                 +-----------------+
 |       ^         |                 |       ^         |
-|  C/D  !  M ___  |                 |       !  M ___  |
-|       +-->[SoR] |       ...       |       +-->[SoR] |
-|       !   [___] |                 |       !   [___] |
+|  C/D  !M    ___ |                 |       !M    ___ |
+|       +-[]>[SoR]|       ...       |       +-[]>[SoR]|
+|       !    [___]|                 |       !    [___]|
 |       !         |                 |       !         |
 |      F/R        |                 |      F/R        |
 +------ins_id1----+-----ins_idi-----+------ins_idn----+         
-.                   C/D  !                       ___  .
-.                        +--------------------->[SoR] .    
-.                       F/R               M     [___] .
+.                   C/D  !    M         +---+    ___  .
+.                        +------------->|Mng|<=>[SoR] .    
+.                       F/R             +---+   [___] .
 +.................. Discriminator ....................+
 ~~~~
 {: #Fig-SCHCManagement title='Inband Management'}
 
 ## CoAP Profile
 
-Management requests MUST be protected against packet losts. It is RECOMMENDED to use CONfirmable requests and no Token. If the management request is too large regarding the MTU, SCHC Fragmentation SHOULD be used instead of the Block option.
+Management requests MUST be protected against packet losts. It is RECOMMENDED to use CONfirmable requests and no Token. If the management request is too large regarding the MTU, SCHC Fragmentation SHOULD be used instead of the Block option. As shown in figure {{Fig-SCHCManagement}} fragmentation can be common to Management rules and other rules.
 
 ## Rule modification
 
@@ -128,9 +129,9 @@ A candidate rule cannot be used, either in C/D or F/R. A SCHC PDU MUST NOT be ge
 {: #Fig-Rule-mod title='Modifying a rule'}
 
 
-{{Fig-Rule-mod}} illustrates a Rule modification. The left-hand side entity A wants to make rule x evolve.  It send and acknowledged CoAP message to the other end. 
-A change the status of the rule to candidate, indicating that the rule cannot be used anymore for SCHC procedures. The receiving entity B, acknowledge the message,
-and contiue to maintain the rule candidate for a guard period. At the reception of the acknowledgement, A set also a guard period before rule x becomes valid again.
+{{Fig-Rule-mod}} illustrates a Rule modification. The left-hand side entity A wants to make rule x evolve.  It send an acknowledged CoAP message to the other end. 
+Host A change the status of the rule to "candidate", indicating that the rule cannot be used anymore for SCHC procedures. The receiving entity B, acknowledges the message,
+and continues to maintain the "candidate" status for a guard period. At the reception of the acknowledgement, A set also a guard period before rule x becomes valid again.
 
 The guard period is used to avoid SCHC message with a rule ID to appear at the other end after a rule modification. The Guard period appears only once during the rule management and is depends on the out-of-sequence messages expected between both ends.
 
@@ -239,7 +240,16 @@ In the YANG tree, all the lines of the tree have a SID number. Each level of the
 Therefore, to access a specific element in a hierarchy, the SID of this element has to be specified, followed by the keys needed to access it.
 
 For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0]` is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
-For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0]` is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
+
+## Errors in Management
+
+There is different level of error detection:
+
+* CORECONF Errors: these error are directly generated at the CORECONF level. For instance, retreiving a value with a wrong key.
+* YANG validation errors: the data model is not conform with the constains such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
+* SCHC errors: Errors on the Data Model that cannot be detected at the YANG level, for example, the rule numbering do not respect a binary tree. 
+
+## Methods
 
 ### FETCH
 As mentionned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
@@ -263,20 +273,20 @@ RES: 2.05 Content
 ~~~
 
 ### iPATCH
-To write an iPATCH request, several methods could be used. For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, the following command specify a new TV and change the MO and CDA :  
+To write an iPATCH request, several methods could be used. For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, the following command specify a new TV and change the MO and CDA. It is possible to set up individually each field, as given in the following example:   
 
 - Specified all conserned fields :
 
-  ~~~
+~~~
   iPATCH /c 
   {
     ["target-value", 7, 8, field, 1, "di-bidirectional"] : [{delta_TV: 0, delta_value: value}],
     ["matching-operator", 7, 8, field, 1, "bi-directional"] : "mo-equal",
     ["comp-decomp-action", 7, 8, field, 1, "bi-directional"] : "cda-not-sent"
   }
-  ~~~
+~~~
 
-- This can also be specified in a single entry, by setting the sub-tree:
+But if the changes concerns the same subtree, it is RECOMMANDED to regroup the changes in a unqiue fetch, as given in the following example:
 
   ~~~
   iPATCH /c 
@@ -289,6 +299,7 @@ To write an iPATCH request, several methods could be used. For instance, in a Ru
 }
 ~~~
 
+<!--LT: I don't understand-->
 The same principle is applied to rules and "leaf-list".
 
 #### Add
@@ -303,7 +314,7 @@ Example:
 - Add TV into fid-ipv6-payload-length/1/di-bidirectional in Rule 0/3
 
 <!--
-  ~~~
+~~~
   REQ: iPATCH /c
       (Content-Format: application/yang-identifiers+cbor-seq)
   {
@@ -314,7 +325,7 @@ Example:
   }
   
   RES: 2.04 Changed
-  ~~~
+~~~
 --> 
 #### Update
 A request can be considered as an update if the target associated with the various keys is present in the context. Otherwise, it could be consider as an add or an error.
@@ -323,7 +334,7 @@ Example :
 - The Entry fid-ipv6-version/1/di-bidirectional is in Rule 6/3.
 
 <!--
-  ~~~
+~~~
   REQ: iPATCH /c
       (Content-Format: application/yang-identifiers+cbor-seq)
   {
@@ -335,13 +346,13 @@ Example :
   }
   
   RES: 2.04 Changed
-  ~~~
+~~~
 -->
 
 - The Entry fid-ipv6-version/1/di-bidirectional is in not in Rule 7/8 but Rule 7/8 exist.
 
 <!--
-  ~~~
+~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
   {
@@ -353,12 +364,12 @@ Example :
   }
   
   RES: 2.04 Changed
-  ~~~
+~~~
   -->
 
 - The Entry fid-ipv6-version/1/di-bidirectional is not in Rule 5/8, and Rule 5/8 does not exist. Therefore, Rule 5/8 cannot be added in order to include the Entry fid-ipv6-version/1/di-bidirectional because other fields, which are not keys, cannot be deducted at every depth of the context.
 
-  ~~~
+~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
   {
@@ -370,7 +381,7 @@ Example :
   }
   
   RES: 4.04 Not Found
-  ~~~
+~~~
 
 #### Delete
 To remove an object we use "null" value.
@@ -379,7 +390,7 @@ Example:
 - Delete Rule 7/8
 
 <!--
-  ~~~
+~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
   {
@@ -387,7 +398,7 @@ Example:
   }
   
   RES: 2.04 Changed
-  ~~~
+~~~
 -->
 
 For deletion, we limit the actions and consider a minimal CORECONF representation as 
@@ -401,7 +412,7 @@ Example:
 - Delete rule-id-value of Rule 0/3
 
 <!--
-  ~~~
+~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
   {
@@ -409,7 +420,7 @@ Example:
   }
   
   RES: 4.00 Bad Request
-  ~~~
+~~~
 -->
 
 ### Optimization
@@ -547,7 +558,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
  |CoAP MID           |16|1 |Bi|0             |MSB(9)       |LSB         |
  +===================+==+==+==+==============+=============+============+
 ~~~
-{: #Fig-Management-Rule2 title='Management Rule 1'}
+{: #Fig-Management-Rule2 title='Management Rule 2'}
 
 # OSCORE
 
