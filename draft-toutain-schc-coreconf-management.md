@@ -59,7 +59,7 @@ entity:
 
 --- abstract
 
-This document describe how CORECONF management can be applied to SCHC Context. 
+This document describes how CORECONF management can be applied to SCHC Context. 
 
 
 --- middle
@@ -78,15 +78,15 @@ This document describes in which condition management can be done, how to manage
 
 SCHC instance management allows the two end-points to modify the common SoR, by:
 
-* modifyng rules values (such as TV, MO or CDA) in existing rules
-* adding a new rule or 
-* removing an existing rules. 
+* modifying rules values (such as TV, MO or CDA) in existing rules,
+* adding a new rule, 
+* removing an existing rule. 
 
 The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}.  Management Rules (or M rules) can be either Compression rules or No compression rules. Only M rules can modify the SoR.
 
-Management procedures uses their own IPv6 stack, independant of the rest of the system. 
+Management procedures uses their own IPv6 stack, independent of the rest of the system. 
 
-SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to managenement inside a QUIC connection) or directly using OSCORE or DTLS.
+SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to management inside a QUIC connection) or directly using OSCORE or DTLS.
 
 ~~~~ aasvg
 +-----------------+                 +-----------------+
@@ -106,7 +106,7 @@ SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for
 
 ## CoAP Profile
 
-Management requests MUST be protected against packet losts. It is RECOMMENDED to use CONfirmable requests and no Token. If the management request is too large regarding the MTU, SCHC Fragmentation SHOULD be used instead of the Block option. As shown in figure {{Fig-SCHCManagement}} fragmentation can be common to Management rules and other rules.
+Management requests MUST be protected against packet loss. It is RECOMMENDED to use CONfirmable requests and no Token. If the management request is too large regarding the MTU, SCHC Fragmentation SHOULD be used instead of the Block option. As shown in figure {{Fig-SCHCManagement}} fragmentation can be common to Management rules and other rules.
 
 ## Rule modification
 
@@ -130,16 +130,16 @@ A candidate rule cannot be used, either in C/D or F/R. A SCHC PDU MUST NOT be ge
 
 
 {{Fig-Rule-mod}} illustrates a Rule modification. The left-hand side entity A wants to make rule x evolve.  It send an acknowledged CoAP message to the other end. 
-Host A change the status of the rule to "candidate", indicating that the rule cannot be used anymore for SCHC procedures. The receiving entity B, acknowledges the message,
-and continues to maintain the "candidate" status for a guard period. At the reception of the acknowledgement, A set also a guard period before rule x becomes valid again.
+Host A change the status of the rule to "candidate", indicating that the rule can no longer be used for SCHC procedures. The receiving entity B, acknowledges the message
+and continues to maintain the "candidate" status for a Guard period. At the reception of the acknowledgement, A set also a Guard period before rule x becomes valid again.
 
-The guard period is used to avoid SCHC message with a rule ID to appear at the other end after a rule modification. The Guard period appears only once during the rule management and is depends on the out-of-sequence messages expected between both ends.
+The Guard period is used to avoid SCHC message with a rule ID to appear at the other end after a rule modification. The Guard period appears only once during the rule management and is depends on the out-of-sequence messages expected between both ends.
 
 ## Rule creation 
 
-Rule creation do not require a guard period, and acknowledgment is RECOMMENDED. Figure {{Fig-Rule-creation}} gives an example, where the Acknowledgment is lost.
-Entity A sends a management message to create a new rule. Since its a new rule, the guard period is not set and the new rule becomes immediatly valid on B. 
-The Acknowledgement does not reach back A, so the rule stays in the candidate state, but the reception of a SCHC PDU carrying the RulE ID X, informs that the
+Rule creation do not require a Guard period, and acknowledgement is RECOMMENDED. Figure {{Fig-Rule-creation}} gives an example, where the Acknowledgment is lost.
+Entity A sends a management message to create a new rule. Since its a new rule, the Guard period is not set and the new rule becomes immediately valid on B. 
+The Acknowledgement does not reach A, so the rule stays in the candidate state, but the reception of a SCHC PDU carrying the RulE ID X, informs that the
 message has been correctly received by B. So X becomes valid in A. 
 
 
@@ -172,8 +172,8 @@ M Rules have to be marked in a way that allows quickly identifying which rules i
 Therefore, a new "nature-management" type has been defined. This nature is actually a specialization of "nature-compression" for management purposes and compression needs to be available and activated to do management.
 
 ### Guard
-To determine if a rule is considered available or not during the guard period, a rule needs to have a status which determines if it can be used. Basically, an available rule MUST associate the key "rule-status" with the value "status-active".
-Conversely, during the guard period, "rule-status" MUST be set to "status-candidate".
+To determine if a rule is considered available or not during the Guard period, a rule needs to have a status which determines if it can be used. Basically, an available rule MUST associate the key "rule-status" with the value "status-active".
+Conversely, during the Guard period, "rule-status" MUST be set to "status-candidate".
 
 ### YANG tree representation
 The YANG tree represents the Rule structure as defined in RFC 9363 with the two updates described above:
@@ -245,14 +245,14 @@ For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectio
 
 There is different level of error detection:
 
-* CORECONF Errors: these error are directly generated at the CORECONF level. For instance, retrieving a value with a wrong key.
-* YANG validation errors: the data model is not conforming with the constrains such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
-* SCHC errors: Errors on the Data Model that cannot be detected at the YANG level, for example, the rule numbering do not respect a binary tree. 
+* CORECONF Errors: these errors are directly generated at the CORECONF level. For instance, retrieving a value with a wrong key.
+* YANG validation errors: the data model is not conforming with the constraints such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
+* SCHC errors: Errors on the Data Model that cannot be detected at the YANG level, for example, the rule numbering does not respect a binary tree. 
 
 ## Methods
 
 ### FETCH
-As mentionned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
+As mentioned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
 
 Example : Fetching TV, MO and CDA of the Entry fid-ipv6-version/1/bidirectional from Rule 6/3.
 
@@ -286,7 +286,7 @@ To write an iPATCH request, several methods could be used. For instance, in a Ru
   }
 ~~~
 
-But if the changes concerns the same subtree, it is RECOMMANDED to regroup the changes in a unqiue fetch, as given in the following example:
+But if the changes concerns the same subtree, it is RECOMMENDED to regroup the changes in a unique fetch, as given in the following example:
 
   ~~~
   iPATCH /c 
@@ -416,10 +416,10 @@ Example:
 
 ### Optimization
 
-This process imposes to send the full rule in the value part, so an optimization can be done by deriving an exisiting rule and modify some parameters. 
+This process imposes to send the full rule in the value part, so an optimization can be done by deriving an existing rule and modify some parameters. 
 
 {{I-D.toutain-schc-universal-option}} augments the data model for universal options. This add to compression rules a new entry format where a field is indexed with:
-* a space-id, a YANG identifier refering to the protocol containing options (CoAP, QUIC, TCP,...)
+* a space-id, a YANG identifier referring to the protocol containing options (CoAP, QUIC, TCP,...)
 * the option used in the protocol
 * the position 
 
@@ -444,7 +444,7 @@ This process imposes to send the full rule in the value part, so an optimization
         +--rw schc-opt:value?   binary
 ~~~
 
-In the CORECONF representation, even if the name are similar in the structure, the SID values are different. The key contains for an entry contains 4 elements.
+In the CORECONF representation, even if the name are similar in the structure, the SID values are different. The key for an entry contains 4 elements.
 
 ~~~
 REQ: FETCH </c>
@@ -477,7 +477,7 @@ After duplication, the new rule stays in a candidate state until the new values 
 
 # Protocol Stack
 
-The management inside the instance has its own IPv6 stack totally independant of the rest of the system. The goal is to implement IPv6/UDP/CoAP to allow the implementation of the CORECONF interface. No other kind of traffic is allowed.
+The management inside the instance has its own IPv6 stack totally independent of the rest of the system. The goal is to implement IPv6/UDP/CoAP to allow the implementation of the CORECONF interface. No other kind of traffic is allowed.
 
 The end-point acting as a Device has the IPv6 address fe80::1/64 and the other end fe80::2/64. 
 
