@@ -245,8 +245,8 @@ For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectio
 
 There is different level of error detection:
 
-* CORECONF Errors: these error are directly generated at the CORECONF level. For instance, retreiving a value with a wrong key.
-* YANG validation errors: the data model is not conform with the constains such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
+* CORECONF Errors: these error are directly generated at the CORECONF level. For instance, retrieving a value with a wrong key.
+* YANG validation errors: the data model is not conforming with the constrains such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
 * SCHC errors: Errors on the Data Model that cannot be detected at the YANG level, for example, the rule numbering do not respect a binary tree. 
 
 ## Methods
@@ -313,7 +313,6 @@ One important specification is that for every leaf-list, the YANG Data Model des
 Example:
 - Add TV into fid-ipv6-payload-length/1/di-bidirectional in Rule 0/3
 
-<!--
 ~~~
   REQ: iPATCH /c
       (Content-Format: application/yang-identifiers+cbor-seq)
@@ -326,14 +325,13 @@ Example:
   
   RES: 2.04 Changed
 ~~~
---> 
+
 #### Update
 A request can be considered as an update if the target associated with the various keys is present in the context. Otherwise, it could be consider as an add or an error.
 
 Example : 
 - The Entry fid-ipv6-version/1/di-bidirectional is in Rule 6/3.
 
-<!--
 ~~~
   REQ: iPATCH /c
       (Content-Format: application/yang-identifiers+cbor-seq)
@@ -347,11 +345,10 @@ Example :
   
   RES: 2.04 Changed
 ~~~
--->
+
 
 - The Entry fid-ipv6-version/1/di-bidirectional is in not in Rule 7/8 but Rule 7/8 exist.
 
-<!--
 ~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
@@ -365,7 +362,6 @@ Example :
   
   RES: 2.04 Changed
 ~~~
-  -->
 
 - The Entry fid-ipv6-version/1/di-bidirectional is not in Rule 5/8, and Rule 5/8 does not exist. Therefore, Rule 5/8 cannot be added in order to include the Entry fid-ipv6-version/1/di-bidirectional because other fields, which are not keys, cannot be deducted at every depth of the context.
 
@@ -389,7 +385,6 @@ To remove an object we use "null" value.
 Example:
 - Delete Rule 7/8
 
-<!--
 ~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
@@ -399,19 +394,15 @@ Example:
   
   RES: 2.04 Changed
 ~~~
--->
 
 For deletion, we limit the actions and consider a minimal CORECONF representation as 
-
-```{"ietf-schc:schc" : {"rule" : []}}```
-. 
+```{"ietf-schc:schc" : {"rule" : []}}```. 
 Therefore, a request trying to delete "ietf-schc:schc" will set the CORECONF representation to the minimal one.
 Additionally, while updates are authorized, deleting a protected key is forbidden.
 
 Example:
 - Delete rule-id-value of Rule 0/3
 
-<!--
 ~~~
   REQ: iPATCH /c
        (Content-Format: application/yang-identifiers+cbor-seq)
@@ -421,7 +412,7 @@ Example:
   
   RES: 4.00 Bad Request
 ~~~
--->
+
 
 ### Optimization
 
@@ -473,10 +464,12 @@ Represented as a tree:
        |  |  +---w rule-id-value?    uint32
        |  |  +---w rule-id-length?   uint8
        |  +---w to
-       |     +---w rule-id-value?    uint32
-       |     +---w rule-id-length?   uint8
+       |  |  +---w rule-id-value?    uint32
+       |  |  +---w rule-id-length?   uint8
+       |  +---w ipatch-sequence?   binary
        +--ro output
           +--ro status?   string
+
 ~~~~
 
 
