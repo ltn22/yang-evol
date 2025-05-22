@@ -488,37 +488,40 @@ Both implements CoAP client and server capabilities. The server uses port 5683 a
 Two rules are required for management functionality. The first rule (RuleID M1) defines packets containing application payloads that include a CoAP Content-Format field. Depending on the direction (Up or Down), this rule manages Confirmable FETCH/iPATCH requests or Non-Confirmable Content responses accordingly. Therefore, the second rule (RuleID M2) is used to compress packets which do not include application payload, basically response packets in downlink.
 
 ~~~
- +---------------------------------------------------------------------------------------------+
- |RuleID M1                                                                                    |
- +-------------------+--+--+--+-------------------------------------+-------------+------------+
- |        FID        |FL|FP|DI|                  TV                 |     MO      |    CDA     |
- +-------------------+--+--+--+-------------------------------------+-------------+------------+
- |IPv6 Version       |4 |1 |Bi|6                                    |equal        |not-sent    |
- |IPv6 Traffic Class |8 |1 |Bi|1                                    |equal        |not-sent    |
- |IPv6 Flow Label    |20|1 |Bi|144470                               |equal        |not-sent    |
- |IPv6 Length        |16|1 |Bi|                                     |ignore       |compute-*   |
- |IPv6 Next Header   |8 |1 |Bi|17                                   |equal        |not-sent    |
- |IPv6 Hop Limit     |8 |1 |Bi|64                                   |equal        |not-sent    |
- |IPv6 DevPrefix     |64|1 |Bi|fe80::/64                            |equal        |not-sent    |
- |IPv6 DevIID        |64|1 |Bi|::2                                  |equal        |not-sent    |
- |IPv6 AppPrefix     |64|1 |Bi|fe80::/64                            |equal        |not-sent    |
- |IPv6 AppIID        |64|1 |Bi|::1                                  |equal        |not-sent    |
- +===================+==+==+==+=====================================+=============+============+
- |UDP DevPort        |16|1 |Bi|3865                                 |equal        |not-sent    |
- |UDP AppPort        |16|1 |Bi|5683                                 |equal        |not-sent    |
- |UDP Length         |16|1 |Bi|                                     |ignore       |compute-*   |
- |UDP Checksum       |16|1 |Bi|                                     |ignore       |compute-*   |
- +===================+==+==+==+=====================================+=============+============+
- |CoAP Version       |2 |1 |Bi|1                                    |equal        |not-sent    |
- |CoAP Type          |2 |1 |Dw|2                                    |equal        |not-sent    |
- |CoAP Type          |2 |1 |Up|0                                    |equal        |not-sent    |
- |CoAP TKL           |4 |1 |Bi|0                                    |equal        |not-sent    |
- |CoAP Code          |8 |1 |Up|[5, 7]                               |match-mapping|mapping-sent|
- |CoAP Code          |8 |1 |Dw|69                                   |equal        |not-sent    |
- |CoAP MID           |16|1 |Bi|0                                    |MSB(9)       |LSB         |
- |CoAP Uri-Path      |8 |1 |Bi|c                                    |equal        |not-sent    |
- |CoAP Content-Format|8 |1 |Bi|application/yang-identifiers+cbor-seq|equal        |not-sent    |
- +===================+==+==+==+=====================================+=============+============+
+ +-------------------------------------------------------------------+
+ |RuleID M1                                                          |
+ +-------------------+--+--+--+-----------+-------------+------------+
+ |        FID        |FL|FP|DI|  TV       |     MO      |    CDA     |
+ +-------------------+--+--+--+-----------+-------------+------------+
+ |IPv6 Version       |4 |1 |Bi|6          |equal        |not-sent    |
+ |IPv6 Traffic Class |8 |1 |Bi|1          |equal        |not-sent    |
+ |IPv6 Flow Label    |20|1 |Bi|144470     |equal        |not-sent    |
+ |IPv6 Length        |16|1 |Bi|           |ignore       |compute-*   |
+ |IPv6 Next Header   |8 |1 |Bi|17         |equal        |not-sent    |
+ |IPv6 Hop Limit     |8 |1 |Bi|64         |equal        |not-sent    |
+ |IPv6 DevPrefix     |64|1 |Bi|fe80::/64  |equal        |not-sent    |
+ |IPv6 DevIID        |64|1 |Bi|::2        |equal        |not-sent    |
+ |IPv6 AppPrefix     |64|1 |Bi|fe80::/64  |equal        |not-sent    |
+ |IPv6 AppIID        |64|1 |Bi|::1        |equal        |not-sent    |
+ +===================+==+==+==+===========+=============+============+
+ |UDP DevPort        |16|1 |Bi|3865       |equal        |not-sent    |
+ |UDP AppPort        |16|1 |Bi|5683       |equal        |not-sent    |
+ |UDP Length         |16|1 |Bi|           |ignore       |compute-*   |
+ |UDP Checksum       |16|1 |Bi|           |ignore       |compute-*   |
+ +===================+==+==+==+===========+=============+============+
+ |CoAP Version       |2 |1 |Bi|1          |equal        |not-sent    |
+ |CoAP Type          |2 |1 |Dw|2          |equal        |not-sent    |
+ |CoAP Type          |2 |1 |Up|0          |equal        |not-sent    |
+ |CoAP TKL           |4 |1 |Bi|0          |equal        |not-sent    |
+ |CoAP Code          |8 |1 |Up|[5, 7]     |match-mapping|mapping-sent|
+ |CoAP Code          |8 |1 |Dw|69         |equal        |not-sent    |
+ |CoAP MID           |16|1 |Bi|0          |MSB(9)       |LSB         |
+ |CoAP Uri-Path      |8 |1 |Bi|c          |equal        |not-sent    |
+ |CoAP Content-Format|8 |1 |Bi|application|equal        |not-sent    |
+ |                   |8 |1 |Bi|/yang-ident|             |            |
+ |                   |8 |1 |Bi|fiers+cbor-|             |            |
+ |                   |8 |1 |Bi|seq        |             |            |
+ +===================+==+==+==+===========+=============+============+
 ~~~
 {: #Fig-M1 title='Management Rule 1'}
 
