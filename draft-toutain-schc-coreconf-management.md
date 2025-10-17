@@ -32,6 +32,13 @@ author:
         code: 35576
         country: France
         email: Laurent.Toutain@imt-atlantique.fr
+      - name: Javier A. Fernandez
+        org: IMT Atlantique
+        street: CS 17607, 2 rue de la Chataigneraie
+        city: Cesson-Sevigne Cedex
+        code: 35510
+        country: France
+        email: javier-alejandro.fernandez@imt-atlantique.fr
       - name: Corentin Banier
         org: IMT Atlantique
         street: CS 17607, 2 rue de la Chataigneraie
@@ -59,32 +66,35 @@ entity:
 
 --- abstract
 
-This document describes how CORECONF management can be applied to SCHC Context. 
+This document describes how CORECONF can be applied to SCHC for context and rule set management between endpoints.
 
 
 --- middle
 
-# Introduction{#intro}
+# Introduction {#intro}
 
-{{RFC9363}} defines the YANG Data Model for a SCHC context (a.k.a Set of Rules). {{I-D.ietf-lpwan-architecture}} proposes the architecture for rule management. Some rules must be clearly dedicated to the modification of the context.
+{{RFC9363}} defines the YANG Data Model for a SCHC context (a.k.a Set of Rules, or SoR). {{I-D.ietf-lpwan-architecture}} proposes the architecture for rule management. Some rules must be clearly dedicated to the modification of the context.
 
 {{RFC9254}} defines a way to serialize data issued from a YANG DM into a CBOR representation and {{I-D.ietf-core-comi}} defines the CoAP interface.
 
-This document describes in which condition management can be done, how to manage rules inside an SCHC instance using CORECONF and proposes some compression rules for the protocol headers.
+This document describes how CORECONF can be used to manage SCHC contexts and rule sets within a SCHC instance. It also specifies SCHC compression rules tailored for the CORECONF-based management traffic itself. These “management compression rules” improve efficiency for control and configuration exchanges, distinct from the compression applied to regular application data.
 
 # Applicability statement
 
 ## Architecture
 
-SCHC instance management allows the two end-points to modify the common SoR, by:
+SCHC instance management allows the two endpoints to modify the common SoR, by:
 
-* modifying rules values (such as TV, MO or CDA) in existing rules,
-* adding a new rule, 
-* removing an existing rule. 
+* Modifying rules values (such as TV, MO or CDA) in existing rules.
+* Adding a new rule.
+* Removing an existing rule.
+* Triggering Remote Procedural Calls (RPC) within the endpoints.
 
-The rule management uses the CORECONF interface {{I-D.ietf-core-comi}} based on CoAP. The management traffic is carried as SCHC compressed packets tagged to some specific rule IDs. They are identified as M rules in Figure {{Fig-SCHCManagement}}.  Management Rules (or M rules) can be either Compression rules or No compression rules. Only M rules can modify the SoR.
+A new type of traffic is defined called management traffic, which deals exclusively with message exchanges concerning context and rule management.
 
-Management procedures uses their own IPv6 stack, independent of the rest of the system. 
+The rule management uses the CORECONF network management interface {{I-D.ietf-core-comi}}, which is based on CoAP. In this context, management traffic refers to the CORECONF messages exchanged between the endpoints to configure or modify rule sets. The management traffic is transported as SCHC-compressed packets, tagged with specific Rule IDs. These rules are identified as Management Rules (or M Rules) in Figure {{Fig-SCHCManagement}}. M Rules can be either Compression Rules or No-Compression Rules. Only M Rules are permitted to modify the SoR.
+
+The management traffic uses its own IPv6 stack, distinct from regular application traffic. See Section {{sec-protocols}} for more details.
 
 SCHC Packets using M Rules MUST be encrypted either by the underlying layer (for instance in a QUIC stream dedicated to management inside a QUIC connection) or directly using OSCORE or DTLS.
 
@@ -167,11 +177,11 @@ CORECONF proposes an interface to manage data structured with a YANG Data Model.
 SCHC Instance Management MUST use FETCH to read a rule and iPATCH to create, modify or delete a rule.
 In order to accomplish management, the YANG Data Model has been updated. 
 
-### Nature Management
+### Management Rule Nature
 M Rules have to be marked in a way that allows quickly identifying which rules in a SoR are responsible for management. 
 Therefore, a new "nature-management" type has been defined. This nature is actually a specialization of "nature-compression" for management purposes and compression needs to be available and activated to do management.
 
-### Guard
+### Guard Period
 To determine if a rule is considered available or not during the Guard period, a rule needs to have a status which determines if it can be used. Basically, an available rule MUST associate the key "rule-status" with the value "status-active".
 Conversely, during the Guard period, "rule-status" MUST be set to "status-candidate".
 
@@ -234,27 +244,28 @@ module: ietf-schc
 
 
 ## Set of Rules Editing
-For clarity reasons, this document will use YANG Identifiers in quotes instead of the SID values.
-In the YANG tree, all the lines of the tree have a SID number. Each level of the hierarchy is accessible through one or several keys. For example, to access the hierarchy under "rule", "rule-id-value" and "rule-id-length" must be specified. To access the hierarchy describing an entry in a compression rule, "rule-id-value" and "rule-id-length" must be followed by "field-id", "field-position" and "direction-indicator". Since the TV, MO-value and CDA-value are stored as lists, "index" must be added to access a specific element.
+For clarity reasons, this document will use YANG Identifiers in quotes instead of SID values.
+Each entry in the YANG tree has a corresponding SID number. Each level of the hierarchy is accessible through one or several keys. For example, to access the hierarchy under "rule", "rule-id-value" and "rule-id-length" must be specified. To access the hierarchy corresponding to a field entry in a compression rule, "rule-id-value" and "rule-id-length" must be followed by "field-id", "field-position" and "direction-indicator". Since the TV, MO-value, and CDA-value are stored as lists, "index" must be added to access a specific element.
 
 Therefore, to access a specific element in a hierarchy, the SID of this element has to be specified, followed by the keys needed to access it.
 
 For example, `["target-value/value", 5, 3, "fid-ipv6-version", 1, "di-bidirectional", 0]` is used to access the first value (0) of TV for the IPv6 Version of Rule 5/3.
 
-## Errors in Management
+## Management Errors
 
-There is different level of error detection:
+There are different levels of error detection:
 
-* CORECONF Errors: these errors are directly generated at the CORECONF level. For instance, retrieving a value with a wrong key.
-* YANG validation errors: the data model is not conforming with the constraints such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
-* SCHC errors: Errors on the Data Model that cannot be detected at the YANG level, for example, the rule numbering does not respect a binary tree. 
+* CORECONF Errors: these errors are directly generated at the CORECONF-managed context level. For instance, retrieving a value with a wrong key.
+* YANG validation errors: the data model does not conform with constraints such as "must" or "mandatory". This check is optional, since it may require a lot of resources on a device.
+* SCHC errors: errors on the Data Model that cannot be detected at the YANG level. For example, the rule numbering does not correspond to a binary tree. 
 
-## Methods
+## CoAP Methods
 
 ### FETCH
-As mentioned in {{I-D.ietf-core-comi}}, FETCH request helps to retrieve at least one instance-value.
 
-Example : Fetching TV, MO and CDA of the Entry fid-ipv6-version/1/bidirectional from Rule 6/3.
+As mentioned in {{I-D.ietf-core-comi}}, FETCH requests are used to retrieve at least one instance-value.
+
+Example: Fetching TV, MO and CDA of the Entry fid-ipv6-version/1/bidirectional from Rule 6/3.
 
 ~~~
 REQ: FETCH /c
@@ -273,9 +284,8 @@ RES: 2.05 Content
 ~~~
 
 ### iPATCH
-To write an iPATCH request, several methods could be used. For instance, in a Rule 7/8, an entry for a field was set to ignore/value-sent and the target-value was not set, the following command specify a new TV and change the MO and CDA. It is possible to set up individually each field, as given in the following example:   
 
-- Specified all conserned fields :
+Several payload formats can be used in a CoAP iPATCH request to modify SCHC rule parameters. For example, when a field entry in Rule 7/8 is configured as ignore/value-sent and no target value has been defined, the following iPATCH request payload sets a new Target Value (TV) and updates the corresponding Matching Operator (MO) and Compression/Decompression Action (CDA):
 
 ~~~
   iPATCH /c 
@@ -286,9 +296,10 @@ To write an iPATCH request, several methods could be used. For instance, in a Ru
   }
 ~~~
 
-But if the changes concerns the same subtree, it is RECOMMENDED to regroup the changes in a unique fetch, as given in the following example:
+It is possible to represent each field update as a separate entry in the payload, as shown above.
+However, when the modifications apply to elements of the same subtree, it is RECOMMENDED to group them within a single structure inside the iPATCH request payload, as shown below:
 
-  ~~~
+~~~
   iPATCH /c 
   {
     ["entry", 7, 8, field, 1, "di-bidirectional"] : { 
@@ -299,19 +310,22 @@ But if the changes concerns the same subtree, it is RECOMMENDED to regroup the c
 }
 ~~~
 
-<!--LT: I don't understand-->
-The same principle is applied to rules and "leaf-list".
+Both payload formats are valid encodings for a CoAP iPATCH request. The interpretation and application of the modifications are implementation-specific.
 
-#### Add
-If the target object doesn't exist in the context, then it is appended. 
-It supports three main cases:
-* Adding a new key-value pair to an existing object
-* Adding a new object to an existing list
+<!--LT: I don't understand-- Alejandro: clear now? -->
+The same approach applies to rule updates and YANG leaf-list objects, where multiple related modifications may be grouped within a single iPATCH request.
 
-One important specification is that for every leaf-list, the YANG Data Model describes that every index should be incremental. In CORECONF, we trust the user/system.
+#### Adding an element
 
-Example:
-- Add TV into fid-ipv6-payload-length/1/di-bidirectional in Rule 0/3
+If the target object, field, or entry does not exist in the SCHC context, it is added.
+It supports two main cases:
+
+* Adding a new key-value pair to an existing object.
+* Adding a new object to an existing list.
+
+When adding a new element to a YANG leaf-list in the SCHC context, the model requires that each list index be strictly incremental. CORECONF does not enforce this automatically; it relies on the client or system to provide correctly ordered indices.
+
+Example: Add TV into fid-ipv6-payload-length/1/di-bidirectional in Rule 0/3
 
 ~~~
   REQ: iPATCH /c
@@ -326,10 +340,12 @@ Example:
   RES: 2.04 Changed
 ~~~
 
-#### Update
-A request can be considered as an update if the target associated with the various keys is present in the context. Otherwise, it could be consider as an add or an error.
+#### Modify an element
 
-Example : 
+If the target object, field, or entry does exist in the SCHC context, it is updated.
+
+Examples: 
+
 - The Entry fid-ipv6-version/1/di-bidirectional is in Rule 6/3.
 
 ~~~
@@ -379,10 +395,12 @@ Example :
   RES: 4.04 Not Found
 ~~~
 
-#### Delete
-To remove an object we use "null" value.
+#### Delete an element
+
+If the specified value in the request is "null", it deletes an object, field, or entry from the SCHC context
 
 Example:
+
 - Delete Rule 7/8
 
 ~~~
@@ -395,13 +413,15 @@ Example:
   RES: 2.04 Changed
 ~~~
 
-For deletion, we limit the actions and consider a minimal CORECONF representation as 
-```{"ietf-schc:schc" : {"rule" : []}}```. 
-Therefore, a request trying to delete "ietf-schc:schc" will set the CORECONF representation to the minimal one.
-Additionally, while updates are authorized, deleting a protected key is forbidden.
+When deleting objects in the SCHC context via iPATCH, the operation is restricted to prevent removal of required structural elements. Deleting the top-level object (`ietf-schc:schc`) does not remove it entirely; instead, the object is reset to a minimal representation:
 
-Example:
-- Delete rule-id-value of Rule 0/3
+~~~
+{"ietf-schc:schc": {"rule": []}}
+~~~
+
+This ensures the SCHC context remains structurally valid. Updates to existing objects are generally allowed, but deletion of protected keys is forbidden.
+
+Example: Delete rule-id-value of Rule 0/3
 
 ~~~
   REQ: iPATCH /c
@@ -413,15 +433,30 @@ Example:
   RES: 4.00 Bad Request
 ~~~
 
+### POST {#sec-post-method}
 
-### Optimization
+As described in {{I-D.ietf-core-comi}}, the POST CoAP method is used to trigger Remote Procedure Calls (RPC) and other actions within a SCHC endpoint. Thus, a POST message can be sent to invoke a specific RPC on the remote endpoint. Details of the supported RPCs and their behavior are defined in Section {{sec-rpcs}}.
 
-This process imposes to send the full rule in the value part, so an optimization can be done by deriving an existing rule and modify some parameters. 
+RPCs and actions are defined in a YANG Data Model with optional associated inputs and outputs, 
+The request payload contains the RPC input map, if any. The response payload contains the corresponding output map, if any.
 
-{{I-D.toutain-schc-universal-option}} augments the data model for universal options. This add to compression rules a new entry format where a field is indexed with:
-* a space-id, a YANG identifier referring to the protocol containing options (CoAP, QUIC, TCP,...)
-* the option used in the protocol
-* the position 
+### Optimizations
+
+Two optimizations are possible: first, deriving rules to avoid sending the full object; second, using universal option indexing for fine-grained field updates.
+
+#### Derive-from-existing-rule optimization
+
+When sending SCHC rules in iPATCH messages, the naive approach is to include the full rule object in the payload, even if only a few fields need to be updated. This can be inefficient, especially in constrained environments. To reduce the amount of data transmitted, an optimization consists in deriving a new rule from an existing one and specifying only the fields that are changing.
+
+Therefore, for adding new rules, the RECOMMENDED method is to use the `duplicate-rule` RPC, defined in Section {{sec-duplicate-rule-rpc}}, which implements this derivation mechanism efficiently.
+
+#### Universal-options optimization
+
+The data model for universal options {{I-D.toutain-schc-universal-option}} augments SCHC compression rules with a structured format for protocol options. Each entry is indexed by:
+
+* a space-id, referring to the protocol containing the option (e.g., CoAP, QUIC, TCP),
+* the option itself, and
+* the position of the field within the protocol header.
 
 ~~~ 
   +--rw schc-opt:entry-option-space* \
@@ -444,7 +479,8 @@ This process imposes to send the full rule in the value part, so an optimization
         +--rw schc-opt:value?   binary
 ~~~
 
-In the CORECONF representation, even if the name are similar in the structure, the SID values are different. The key for an entry contains 4 elements.
+In the CORECONF representation, even though the structural names may resemble each other, the SID values differ.
+Each entry key consists of four elements, enabling precise referencing of individual protocol fields and allowing efficient selective field-level updates without touching the rest of the rule.
 
 ~~~
 REQ: FETCH </c>
@@ -452,7 +488,14 @@ REQ: FETCH </c>
    ["schc-opt:matching-operator", 8, 3, "schc-opt:space-id-coap", 11, 1, "di-up"]
 ~~~
 
-## RPC
+## RPC statements {#sec-rpcs}
+
+A YANG "RPC" is an operation that may be invoked within a SCHC endpoint and triggers a specified behavior. Within the context of rule management, RPCs are used to perform actions on the set of rules and may also be used for other operations, such as rebooting the remote device endpoint.
+
+Each RPC resource has specific inputs and outputs, and may be invoked remotely via a POST CoAP message, as described in Section {{sec-post-method}}.
+
+
+### Duplicate Rule (#sec-duplicate-rule-rpc)
 
 Represented as a tree:
 
@@ -475,7 +518,7 @@ Represented as a tree:
 
 After duplication, the new rule stays in a candidate state until the new values are set. 
 
-# Protocol Stack
+# Protocol Stack {#sec-protocols}
 
 The management inside the instance has its own IPv6 stack totally independent of the rest of the system. The goal is to implement IPv6/UDP/CoAP to allow the implementation of the CORECONF interface. No other kind of traffic is allowed.
 
