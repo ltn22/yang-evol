@@ -3,7 +3,8 @@ v: 3
 
 title: CORECONF Rule management for SCHC
 abbrev: SCHC for CoAP
-docname: draft-toutain-schc-coreconf-management
+docname: draft-toutain-schc-coreconf-management-01
+ipr: trust200902
 
 v3xml2rfc:
   silence:
@@ -497,6 +498,8 @@ Each RPC resource has specific inputs and outputs, and may be invoked remotely v
 
 ### Duplicate Rule (#sec-duplicate-rule-rpc)
 
+To add a new rule, instead of using the iPATCH method with a full rule definition (especially when the new rule is similar to an existing one), the RECOMMENDED approach is to use the `duplicate-rule` RPC. This operation copies an existing rule ("from") into a new rule ("to"), and can optionally include an iPATCH sequence specifying modifications to apply to the duplicated rule. The output returns a status string conveying the result of the operation.
+
 Represented as a tree:
 
 ~~~
@@ -504,31 +507,83 @@ Represented as a tree:
     +---x duplicate-rule
        +---w input
        |  +---w from
-       |  |  +---w rule-id-value?    uint32
-       |  |  +---w rule-id-length?   uint8
+       |  |  +---w rule-id-value     uint32
+       |  |  +---w rule-id-length    uint8
        |  +---w to
-       |  |  +---w rule-id-value?    uint32
-       |  |  +---w rule-id-length?   uint8
+       |  |  +---w rule-id-value     uint32
+       |  |  +---w rule-id-length    uint8
        |  +---w ipatch-sequence?   binary
        +--ro output
           +--ro status?   string
-
 ~~~~
 
+This mechanism reduces management overhead and addresses the isue of adapting to variable application traffic. For example, a SCHC instance may begin with a generic rule with low compression rate, but progressively make rule duplications to make more specialized rules that better match the observed traffic patterns, acheiving higher compression rates and thus adapting the rule set dynamically to the session characteristics.
 
-After duplication, the new rule stays in a candidate state until the new values are set. 
+To maintain consistent rule indexing and enable efficient rule matching, newly created rules SHOULD follow a binary tree structure. For instance, a rule identified as 8/4 may be duplicated as either 8/5 or 18/5, thereby extending the rule identifier by one bit.
+
+Example:
+
+- Representation with identifiers for clarity. Delta-encoded SIDs are used in a real request.
+
+~~~
+REQ:  POST </c>
+      (Content-Format: application/yang-instances+cbor-seq)
+
+{
+  "/ietf-schc:duplicate-rule":
+  {
+    "input/from/rule-id-value": 8,
+    "input/from/rule-id-length": 4,
+    "input/to/rule-id-value": 7,
+    "input/to/rule-id-length": 4,
+    "input/ipatch-sequence":
+      [
+        "/ietf-schc:schc/rule/entry/target-value/value", 8, 5,
+        "fid-coap-mid", 1, "di-bidirectional", 0,
+      ]: "FAA="
+  }
+}
+
+RES:  2.04 Changed
+      (Content-Format: application/yang-instances+cbor-seq)
+
+{
+  "/ietf-schc:duplicate-rule":
+  {
+    "output/status": "success",
+  }
+}
+~~~
+
+#### Error Handling
+
+The `duplicate-rule` operation SHALL be atomic. If an error occurs during either stage of the process (rule duplication or subsequent modification through the iPATCH sequence) the SCHC endpoint MUST revert any partial changes to restore the previous state.
+The RPC output MUST indicate the failure, for example with an error status such as `Bad Request`, to signal that the duplication did not take place as requested.
+The precise error code and diagnostic message are implementation-dependent but SHOULD provide enough context for the management entity to identify the cause of failure.
 
 # Protocol Stack {#sec-protocols}
 
-The management inside the instance has its own IPv6 stack totally independent of the rest of the system. The goal is to implement IPv6/UDP/CoAP to allow the implementation of the CORECONF interface. No other kind of traffic is allowed.
+The management inside the instance has its own IPv6 stack, independent of the application traffic. IPv6/UDP/CoAP is used to allow the implementation of the CORECONF interface. No other kind of traffic is allowed.
 
-The end-point acting as a Device has the IPv6 address fe80::1/64 and the other end fe80::2/64. 
+The end-point acting as a Device has the IPv6 address fe80::1/64 and the other end, the Core, is assigned the address fe80::2/64. 
 
-Both implements CoAP client and server capabilities. The server uses port 5683 and the client 3865. 
+Both endpoints implement CoAP client and server capabilities, that is, both endpoints are capable of sending requests and processing responses. The server uses port 5683 and the client 3865. 
 
-## Compression Rules
+## Management Compression Rules (M Rules)
 
-Two rules are required for management functionality. The first rule (RuleID M1) defines packets containing application payloads that include a CoAP Content-Format field. Depending on the direction (Up or Down), this rule manages Confirmable FETCH/iPATCH requests or Non-Confirmable Content responses accordingly. Therefore, the second rule (RuleID M2) is used to compress packets which do not include application payload, basically response packets in downlink.
+To enable CORECONF-based context and rule management over SCHC, a set of dedicated management rules, identified as M rules, is defined. These rules are used exclusively for management traffic, that is, packets exchanged between SCHC endpoints for the purpose of managing rules, not for application data transfer.
+
+This specification introduces four rules, allowing bidirectional operation and fine control over management capabilities.
+Each rule defines the compression behavior for management messages in its direction, distinguishing between requests and responses.
+
+* M1: Handles packets containing a payload (e.g., CoAP requests or Content responses) in one direction (Uplink).
+* M2: Handles packets without a payload (e.g., CoAP responses) in the same direction (Uplink).
+* M3: Mirrors M1 in the opposite direction (Downlink), for payload-bearing management messages.
+* M4: Mirrors M2 in the opposite direction (Downlink), for payloadless messages.
+
+Implementations MAY choose to support only a subset of these rules, depending on their operational or security requirements. For instance, an implementation may include only M3 and M4 to permit management operations exclusively from one endpoint, effectively preventing unsolicited management requests in the other direction. In this sense, the absence of certain M rules in the SoR implicitly acts as a policy mechanism or safeguard for rule management operations.
+
+M rules are protected elements within the SoR. They define the operation of the management channel itself and therefore MUST NOT be modified, duplicated, or deleted through CORECONF operations. Any attempt to apply a modification or duplication request to an M rule MUST result in an Unauthorized error response. This restriction ensures the integrity and stability of the SCHC management process.
 
 ~~~
  +-------------------------------------------------------------------+
@@ -556,14 +611,14 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
  |CoAP Type          |2 |1 |Dw|2          |equal        |not-sent    |
  |CoAP Type          |2 |1 |Up|0          |equal        |not-sent    |
  |CoAP TKL           |4 |1 |Bi|0          |equal        |not-sent    |
- |CoAP Code          |8 |1 |Up|[5, 7]     |match-mapping|mapping-sent|
+ |CoAP Code          |8 |1 |Up|[2, 5, 7]  |match-mapping|mapping-sent|
  |CoAP Code          |8 |1 |Dw|69         |equal        |not-sent    |
  |CoAP MID           |16|1 |Bi|0          |MSB(9)       |LSB         |
  |CoAP Uri-Path      |8 |1 |Bi|c          |equal        |not-sent    |
  |CoAP Content-Format|8 |1 |Bi|application|equal        |not-sent    |
- |                   |8 |1 |Bi|/yang-ident|             |            |
- |                   |8 |1 |Bi|fiers+cbor-|             |            |
- |                   |8 |1 |Bi|seq        |             |            |
+ |                   |  |  |  |/yang-ident|             |            |
+ |                   |  |  |  |fiers+cbor-|             |            |
+ |                   |  |  |  |seq        |             |            |
  +===================+==+==+==+===========+=============+============+
 ~~~
 {: #Fig-M1 title='Management Rule 1'}
@@ -593,11 +648,82 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
  |CoAP Version       |2 |1 |Bi|1             |equal        |not-sent    |
  |CoAP Type          |2 |1 |Dw|2             |equal        |not-sent    |
  |CoAP TKL           |4 |1 |Bi|0             |equal        |not-sent    |
- |CoAP Code          |8 |1 |Dw|[68, 128, 132]|match-mapping|mapping-sent|
+ |CoAP Code          |8 |1 |Dw|[68, 128, 129,|match-mapping|mapping-sent|
+ |                   |  |  |  | 132, 160]    |             |            |
  |CoAP MID           |16|1 |Bi|0             |MSB(9)       |LSB         |
  +===================+==+==+==+==============+=============+============+
 ~~~
-{: #Fig-Management-Rule2 title='Management Rule 2'}
+{: #Fig-M2 title='Management Rule 2'}
+
+~~~
+ +-------------------------------------------------------------------+
+ |RuleID M3                                                          |
+ +-------------------+--+--+--+-----------+-------------+------------+
+ |        FID        |FL|FP|DI|  TV       |     MO      |    CDA     |
+ +-------------------+--+--+--+-----------+-------------+------------+
+ |IPv6 Version       |4 |1 |Bi|6          |equal        |not-sent    |
+ |IPv6 Traffic Class |8 |1 |Bi|1          |equal        |not-sent    |
+ |IPv6 Flow Label    |20|1 |Bi|144470     |equal        |not-sent    |
+ |IPv6 Length        |16|1 |Bi|           |ignore       |compute-*   |
+ |IPv6 Next Header   |8 |1 |Bi|17         |equal        |not-sent    |
+ |IPv6 Hop Limit     |8 |1 |Bi|64         |equal        |not-sent    |
+ |IPv6 DevPrefix     |64|1 |Bi|fe80::/64  |equal        |not-sent    |
+ |IPv6 DevIID        |64|1 |Bi|::2        |equal        |not-sent    |
+ |IPv6 AppPrefix     |64|1 |Bi|fe80::/64  |equal        |not-sent    |
+ |IPv6 AppIID        |64|1 |Bi|::1        |equal        |not-sent    |
+ +===================+==+==+==+===========+=============+============+
+ |UDP DevPort        |16|1 |Bi|3865       |equal        |not-sent    |
+ |UDP AppPort        |16|1 |Bi|5683       |equal        |not-sent    |
+ |UDP Length         |16|1 |Bi|           |ignore       |compute-*   |
+ |UDP Checksum       |16|1 |Bi|           |ignore       |compute-*   |
+ +===================+==+==+==+===========+=============+============+
+ |CoAP Version       |2 |1 |Bi|1          |equal        |not-sent    |
+ |CoAP Type          |2 |1 |Up|2          |equal        |not-sent    |
+ |CoAP Type          |2 |1 |Dw|0          |equal        |not-sent    |
+ |CoAP TKL           |4 |1 |Bi|0          |equal        |not-sent    |
+ |CoAP Code          |8 |1 |Dw|[2, 5, 7]  |match-mapping|mapping-sent|
+ |CoAP Code          |8 |1 |Up|69         |equal        |not-sent    |
+ |CoAP MID           |16|1 |Bi|0          |MSB(9)       |LSB         |
+ |CoAP Uri-Path      |8 |1 |Bi|c          |equal        |not-sent    |
+ |CoAP Content-Format|8 |1 |Bi|application|equal        |not-sent    |
+ |                   |  |  |  |/yang-ident|             |            |
+ |                   |  |  |  |fiers+cbor-|             |            |
+ |                   |  |  |  |seq        |             |            |
+ +===================+==+==+==+===========+=============+============+
+~~~
+{: #Fig-M3 title='Management Rule 3'}
+
+~~~
+ +----------------------------------------------------------------------+
+ |RuleID M4                                                             |
+ +-------------------+--+--+--+--------------+-------------+------------+
+ |        FID        |FL|FP|DI|      TV      |     MO      |    CDA     |
+ +-------------------+--+--+--+--------------+-------------+------------+
+ |IPv6 Version       |4 |1 |Bi|6             |equal        |not-sent    |
+ |IPv6 Traffic Class |8 |1 |Bi|1             |equal        |not-sent    |
+ |IPv6 Flow Label    |20|1 |Bi|144470        |equal        |not-sent    |
+ |IPv6 Length        |16|1 |Bi|              |ignore       |compute-*   |
+ |IPv6 Next Header   |8 |1 |Bi|17            |equal        |not-sent    |
+ |IPv6 Hop Limit     |8 |1 |Bi|64            |equal        |not-sent    |
+ |IPv6 DevPrefix     |64|1 |Bi|fe80::/64     |equal        |not-sent    |
+ |IPv6 DevIID        |64|1 |Bi|::2           |equal        |not-sent    |
+ |IPv6 AppPrefix     |64|1 |Bi|fe80::/64     |equal        |not-sent    |
+ |IPv6 AppIID        |64|1 |Bi|::1           |equal        |not-sent    |
+ +===================+==+==+==+==============+=============+============+
+ |UDP DevPort        |16|1 |Bi|3865          |equal        |not-sent    |
+ |UDP AppPort        |16|1 |Bi|5683          |equal        |not-sent    |
+ |UDP Length         |16|1 |Bi|              |ignore       |compute-*   |
+ |UDP Checksum       |16|1 |Bi|              |ignore       |compute-*   |
+ +===================+==+==+==+==============+=============+============+
+ |CoAP Version       |2 |1 |Bi|1             |equal        |not-sent    |
+ |CoAP Type          |2 |1 |Up|2             |equal        |not-sent    |
+ |CoAP TKL           |4 |1 |Bi|0             |equal        |not-sent    |
+ |CoAP Code          |8 |1 |Up|[68, 128, 129,|match-mapping|mapping-sent|
+ |                   |  |  |  | 132, 160]    |             |            |
+ |CoAP MID           |16|1 |Bi|0             |MSB(9)       |LSB         |
+ +===================+==+==+==+==============+=============+============+
+~~~
+{: #Fig-M4 title='Management Rule 4'}
 
 # OSCORE
 
@@ -652,7 +778,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
   
-* Delete a specific entry:
+* Delete a specific protocol field entry:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -672,7 +798,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
   
-* Delete a basic key:
+* Delete a specific key:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -692,7 +818,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
   
-* Delete a leaf-list single:
+* Delete a list element:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -712,7 +838,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
   
-* Delete a leaf-list several:
+* Delete a multiple list elements:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -794,7 +920,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
 
-* Update basic key:
+* Update a specific key:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -846,7 +972,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
 
-* Add leaf-list incremental:
+* Add a list element (auto-indexed)
   
   ~~~
   YANG REQ: iPATCH /c
@@ -870,7 +996,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
 
-* Add leaf-list non-incremental:
+* Add a list element (explicit index):
   
   ~~~
   YANG REQ: iPATCH /c
@@ -894,7 +1020,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
 
-* Add new key:value:
+* Add a new key–value pair element:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -919,7 +1045,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
 
-* Add new rule:
+* Add a new rule:
   
   ~~~
   YANG REQ: iPATCH /c
@@ -944,7 +1070,7 @@ Two rules are required for management functionality. The first rule (RuleID M1) 
   RES: 2.04 Changed
   ~~~
 
-* Add entry into unknown rule:
+* Add an entry into an unknown rule:
   
   ~~~
   YANG REQ: iPATCH /c
