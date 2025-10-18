@@ -496,7 +496,7 @@ A YANG "RPC" is an operation that may be invoked within a SCHC endpoint and trig
 Each RPC resource has specific inputs and outputs, and may be invoked remotely via a POST CoAP message, as described in Section {{sec-post-method}}.
 
 
-### Duplicate Rule (#sec-duplicate-rule-rpc)
+### Duplicate Rule {#sec-duplicate-rule-rpc}
 
 To add a new rule, instead of using the iPATCH method with a full rule definition (especially when the new rule is similar to an existing one), the RECOMMENDED approach is to use the `duplicate-rule` RPC. This operation copies an existing rule ("from") into a new rule ("to"), and can optionally include an iPATCH sequence specifying modifications to apply to the duplicated rule. The output returns a status string conveying the result of the operation.
 
