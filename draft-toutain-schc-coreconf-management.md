@@ -517,9 +517,7 @@ Represented as a tree:
           +--ro status?   string
 ~~~~
 
-This mechanism reduces management overhead and addresses the isue of adapting to variable application traffic. For example, a SCHC instance may begin with a generic rule with low compression rate, but progressively make rule duplications to make more specialized rules that better match the observed traffic patterns, acheiving higher compression rates and thus adapting the rule set dynamically to the session characteristics.
-
-To maintain consistent rule indexing and enable efficient rule matching, newly created rules SHOULD follow a binary tree structure. For instance, a rule identified as 8/4 may be duplicated as either 8/5 or 18/5, thereby extending the rule identifier by one bit.
+This mechanism reduces management overhead and addresses the issue of adapting to variable application traffic. For example, a SCHC instance may begin with a generic rule with low compression rate, but progressively make rule duplications to make more specialized rules that better match the observed traffic patterns, acheiving higher compression rates and thus adapting the rule set dynamically to the session characteristics.
 
 Example:
 
@@ -534,13 +532,13 @@ REQ:  POST </c>
   {
     "input/from/rule-id-value": 8,
     "input/from/rule-id-length": 4,
-    "input/to/rule-id-value": 7,
+    "input/to/rule-id-value": 9,
     "input/to/rule-id-length": 4,
     "input/ipatch-sequence":
       [
-        "/ietf-schc:schc/rule/entry/target-value/value", 8, 5,
+        "/ietf-schc:schc/rule/entry/target-value/value", 9, 4,
         "fid-coap-mid", 1, "di-bidirectional", 0,
-      ]: "FAA="
+      ]: b"\x14\x00"
   }
 }
 
